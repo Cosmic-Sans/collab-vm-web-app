@@ -1,0 +1,4 @@
+[submodule "collab-vm-shared"]
+	path = submodules/collab-vm-shared
+	url = https://github.com/Cosmic-Sans/collab-vm-shared.git
+	branch = master

@@ -1,0 +1,82 @@
+<%= require("html-loader!./win-logo-ascii.html") %>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Collab VM</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Prevent the browser from sending the Referer header
+         to preserve user privacy. -->
+    <meta name="referrer" content="no-referrer">
+    <script defer src="https://use.fontawesome.com/releases/v5.0.9/js/all.js" integrity="sha384-8iPTk2s/jMVj81dnzb/iFR2sdA7u06vHJyyLlAd4snFpCl/SnyUjRrbdJsw1pGIl" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div class="ui stackable menu">
+      <div class="header item">CollabVM</div>
+      <a class="item" href=".">Home</a>
+      <a class="item" href="faq.html">FAQ</a>
+      <a class="item" href="news.html">News</a>
+      <a class="item" href="rules.html">Rules</a>
+      <a class="item" href="https://reddit.com/r/collabvm">Subreddit</a>
+      <div class="right menu">
+          <div class="item">
+              <div class="ui compact multiple dropdown">
+                  <i class="filter icon"></i>
+                  Filter
+                  <i class="dropdown icon"></i>
+                  <div class="menu">
+                      <div class="item">
+                          <div id="details-checkbox" class="ui checkbox">
+                              <input type="checkbox">
+                              <label>Show details</label>
+                          </div>
+                      </div>
+                      <div class="item">
+                          <div id="official-checkbox" class="ui checkbox">
+                              <input type="checkbox"><label>Official</label>
+                          </div>
+                      </div>
+                      <div class="item">
+                          <div id="control-checkbox" class="ui checkbox">
+                              <input type="checkbox"><label>
+                                  Mouse and Keyboard
+                              </label>
+                          </div>
+                      </div>
+                      <div class="item">
+                          <div id="uploads-checkbox" class="ui checkbox">
+                              <input type="checkbox"><label>
+                                  File Uploads
+                              </label>
+                          </div>
+                      </div>
+                      <div class="item">
+                          <div id="sfw-checkbox" class="ui checkbox">
+                              <input type="checkbox"><label>
+                                  Safe for Work
+                              </label>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+          </div>
+          <div class="item">
+              <div class="ui action left icon input">
+                  <i class="search icon"></i>
+                  <input type="text" id="search-box" placeholder="Search VMs">
+              </div>
+          </div>
+      </div>
+  </div>
+  <div id="loading" class="ui active dimmer inverted" style="position: fixed;">
+    <div class="ui loader"></div>
+  </div>
+  <%= require("html-loader!./home.html") %>
+  <%= require("html-loader!./faq.html") %>
+  <%= require("html-loader!./news.html") %>
+  <%= require("html-loader!./rules.html") %>
+  <%= require("html-loader!./donate.html") %>
+  <%= require("html-loader!./view-vm.html") %>
+</body>
+</html>
