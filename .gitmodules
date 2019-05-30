@@ -1,4 +1,12 @@
-[submodule "collab-vm-shared"]
-	path = submodules/collab-vm-shared
-	url = https://github.com/Cosmic-Sans/collab-vm-shared.git
+[submodule "collab-vm-common"]
+	path = submodules/collab-vm-common
+	url = https://github.com/Cosmic-Sans/collab-vm-common.git
 	branch = master
+
+[submodule "guacamole-client"]
+	path = submodules/guacamole-client
+	url = https://github.com/Cosmic-Sans/guacamole-client.git
+	branch = master
+[submodule "submodules/collab-vm-common"]
+	path = submodules/collab-vm-common
+	url = https://github.com/Cosmic-Sans/collab-vm-common.git
