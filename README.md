@@ -16,7 +16,7 @@ Then, build the capnp tool as you normally would for your platform:
 ```
 mkdir build/capnp_tool
 cd build/capnp_tool
-cmake -DCMAKE_INSTALL_PREFIX=install -DBUILD_TESTING=OFF submodules/collab-vm-common/submodules/capnproto/
+cmake -DCMAKE_INSTALL_PREFIX=install -DBUILD_TESTING=OFF ../../submodules/collab-vm-common/submodules/capnproto/
 cmake --build . --target install
 ```
 

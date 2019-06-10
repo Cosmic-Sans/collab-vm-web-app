@@ -10,6 +10,8 @@ add_executable(${PROJECT_NAME} protocol.cpp)
 
 add_subdirectory(${COLLAB_VM_COMMON} ${COLLAB_VM_COMMON_BINARY_DIR})
 target_link_libraries(${PROJECT_NAME} collab-vm-common)
+set_target_properties(capnp_tool PROPERTIES EXCLUDE_FROM_ALL TRUE)
+set_target_properties(capnpc_cpp PROPERTIES EXCLUDE_FROM_ALL TRUE)
 set(LINK_FLAGS "--bind -s ENVIRONMENT=web")
 if(${BUILD_WASM})
   set(LINK_FLAGS "${LINK_FLAGS} -s WASM=1")
@@ -17,7 +19,6 @@ endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES
 	CXX_STANDARD 17
 	CXX_STANDARD_REQUIRED YES
-	CXX_EXTENSIONS NO
 	LINK_FLAGS ${LINK_FLAGS}
 )
 
