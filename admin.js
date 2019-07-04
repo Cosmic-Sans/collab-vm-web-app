@@ -98,7 +98,7 @@ function initAdminPanel() {
     $("#vm-settings :input[name='turn-time']").val(vmConfig.getTurnTime()).off("change")
       .change(function() {
         const vmSettings = createObject("VmSettings");
-        vmSettings.setTurnTime(this.value);
+        vmSettings.setTurnTime(+this.value);
         socket.sendVmSettings(currentVmId, vmSettings);
       });
 
@@ -112,7 +112,7 @@ function initAdminPanel() {
     $("#vm-settings :input[name='upload-cooldown-time']").val(vmConfig.getUploadCooldownTime()).off("change")
       .change(function() {
         const vmSettings = createObject("VmSettings");
-        vmSettings.setUploadCooldownTime(this.value);
+        vmSettings.setUploadCooldownTime(+this.value);
         socket.sendVmSettings(currentVmId, vmSettings);
       });
 
