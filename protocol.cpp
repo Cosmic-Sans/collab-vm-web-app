@@ -669,7 +669,7 @@ struct Deserializer {
         case CollabVmServerMessage::Message::VM_TURN_INFO:
         {
           const auto vm_turn_info = message.getVmTurnInfo();
-          onVmTurnInfo(to_vector<std::string>(vm_turn_info.getUsers()), vm_turn_info.getTimeRemaining());
+          onVmTurnInfo(to_vector<std::string>(vm_turn_info.getUsers()), vm_turn_info.getTimeRemaining(), vm_turn_info.getState() == CollabVmServerMessage::TurnState::PAUSED);
           break;
         }
         case CollabVmServerMessage::Message::VM_THUMBNAIL:
@@ -1147,7 +1147,7 @@ struct Deserializer {
 	}
 
 	virtual void onVmInfo(std::vector<VmInfoWrapper>&& vmInfo) = 0;
-	virtual void onVmTurnInfo(std::vector<std::string>&& users, std::uint32_t time_remaining) = 0;
+	virtual void onVmTurnInfo(std::vector<std::string>&& users, std::uint32_t time_remaining, bool is_paused) = 0;
 	virtual void onVmThumbnail(std::uint32_t vm_id, emscripten::val thumbnail) = 0;
 	virtual void onRegisterAccountSucceeded(std::string&& session_id, std::string&& username) = 0;
 	virtual void onRegisterAccountFailed(const std::string error_message) = 0;
@@ -1175,8 +1175,8 @@ struct DeserializerWrapper : public emscripten::wrapper<Deserializer> {
 	void onVmInfo(std::vector<VmInfoWrapper>&& vmInfo) {
 		return call<void>("onVmInfo", std::move(vmInfo));
 	}
-	void onVmTurnInfo(std::vector<std::string>&& users, std::uint32_t time_remaining) {
-		return call<void>("onVmTurnInfo", std::move(users), time_remaining);
+	void onVmTurnInfo(std::vector<std::string>&& users, std::uint32_t time_remaining, bool is_paused) {
+		return call<void>("onVmTurnInfo", std::move(users), time_remaining, is_paused);
   }
 
 	void onVmThumbnail(std::uint32_t vm_id, emscripten::val thumbnail) {
@@ -1479,6 +1479,24 @@ const auto byte_array = array.asBytes();
 		messageReady(message_builder);
   }
 
+	void pauseTurnTimer() {
+		capnp::MallocMessageBuilder message_builder;
+		message_builder.initRoot<CollabVmClientMessage::Message>().setPauseTurnTimer();
+		messageReady(message_builder);
+  }
+
+	void resumeTurnTimer() {
+		capnp::MallocMessageBuilder message_builder;
+		message_builder.initRoot<CollabVmClientMessage::Message>().setResumeTurnTimer();
+		messageReady(message_builder);
+  }
+
+	void endTurn() {
+		capnp::MallocMessageBuilder message_builder;
+		message_builder.initRoot<CollabVmClientMessage::Message>().setEndTurn();
+		messageReady(message_builder);
+  }
+
 	virtual void onMessageReady(const emscripten::val& message) = 0;
 
   virtual ~Serializer() = default;
@@ -1617,6 +1635,9 @@ emscripten::class_<ServerSettingsWrapper>("ServerSetting")
 	.function("sendDeleteVm", &Serializer::sendDeleteVm)
 	.function("sendTurnRequest", &Serializer::sendTurnRequest)
 	.function("sendBanIpRequest", &Serializer::sendBanIpRequest)
+	.function("pauseTurnTimer", &Serializer::pauseTurnTimer)
+	.function("resumeTurnTimer", &Serializer::resumeTurnTimer)
+	.function("endTurn", &Serializer::endTurn)
 	.allow_subclass<SerializerWrapper>("SerializerWrapper")
 		//.class_function("getServerConfigModification", &Serializer::getServerConfigModification)
 	;

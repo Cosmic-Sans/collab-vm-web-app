@@ -101,6 +101,9 @@ $("#chat-send-btn").click(function() {
     chat.val("");
   }
 });
+$("#end-turn-btn").click(() => getSocket().endTurn());
+$("#pause-turns-btn").click(() => getSocket().pauseTurnTimer());
+$("#resume-turns-btn").click(() => getSocket().resumeTurnTimer());
 
 collabVmTunnel.onstatechange = function(state) {
   if (state == Guacamole.Tunnel.State.CLOSED) {
@@ -338,7 +341,7 @@ const viewServerList = () => {
     },
     onVmDescription: description =>
       $("#vm-description").text(description),
-    onVmTurnInfo: (usersWaitingVector, timeRemaining) => {
+    onVmTurnInfo: (usersWaitingVector, timeRemaining, isPaused) => {
       const usersWaiting = Array.from({length: usersWaitingVector.size()}, (_, i) => usersWaitingVector.get(i))
       if (usersWaiting[0] === username) {
         // The user has control
@@ -347,6 +350,10 @@ const viewServerList = () => {
         if (turnInterval !== null)
           clearInterval(turnInterval);
         // Round the turn time up to the nearest second
+        if (isPaused) {
+          $("#status").html("Paused");
+          return;
+        }
         turnInterval = waitingTimer(function(seconds) {
             if (seconds !== null) {
               $("#status").html(`Your turn expires in ~${seconds} second${seconds === 1 ? "" : "s"}`);
@@ -361,6 +368,10 @@ const viewServerList = () => {
         display.className = "waiting";
         if (turnInterval !== null)
           clearInterval(turnInterval);
+        if (isPaused) {
+          $("#status").html("Paused");
+          return;
+        }
         turnInterval = waitingTimer(function(seconds, dots) {
             if (seconds !== null) {
               $("#status").html(`Waiting for turn in ~${seconds} second${seconds === 1 ? "" : "s"}` + dots);

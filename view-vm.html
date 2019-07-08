@@ -37,17 +37,24 @@ div#display {
         <span>No</span>
       </div>
     </div>-->
-    <div>
-      <button class="btn btn-default" type="button" id="osk-btn">Keyboard</button>
-      <button class="btn btn-default" type="button"  data-toggle="modal" data-target="#username-modal" id="username-btn" disabled>Change Username</button>
-      <button style="display: none;" class="btn btn-default" type="button" id="vote-btn">Vote for Reset</button>
-      <button class="btn btn-default" type="button" id="upload-options-btn">Upload File</button>
-      <div id="file-upload" class="form-inline" style="display: none;">
-        <input class="form" id="upload-input" type="file">
-        <!--<label for="filename-box">Filename</label><input type="text" class="form-control" id="filename-box" placeholder="filename">-->
-        <label><input type="checkbox" id="upload-run-chkbox" checked>Run file</label>
-        <button class="btn btn-default" type="button" id="upload-btn" disabled>Upload</button>
-        <div id="upload-wait-time"></div>
+    <div class="ui centered grid">
+      <div class="row">
+        <button style="display: none;" class="ui button" type="button" id="osk-btn">Keyboard</button>
+        <button style="display: none;" class="ui button" type="button" data-toggle="modal" data-target="#username-modal" id="username-btn" disabled>Change Username</button>
+        <button style="display: none;" class="ui button" type="button" id="vote-btn">Vote for Reset</button>
+        <button style="display: none;" class="ui button" type="button" id="upload-options-btn">Upload File</button>
+        <button class="ui button" type="button" id="end-turn-btn"><i class="stop icon"></i>End Turn</button>
+        <div id="file-upload" class="form-inline" style="display: none;">
+          <input class="form" id="upload-input" type="file">
+          <!--<label for="filename-box">Filename</label><input type="text" class="form-control" id="filename-box" placeholder="filename">-->
+          <label><input type="checkbox" id="upload-run-chkbox" checked>Run file</label>
+          <button class="ui button" type="button" id="upload-btn" disabled>Upload</button>
+          <div id="upload-wait-time"></div>
+        </div>
+      </div>
+      <div class="admin-controls row">
+        <button class="ui button" type="button" id="pause-turns-btn"><i class="pause icon"></i>Pause Turn</button>
+        <button class="ui button" type="button" id="resume-turns-btn"><i class="play icon"></i>Resume Turn</button>
       </div>
     </div>
     <h3 style="height: 1em;"><small id="status"></small></h3>
@@ -81,7 +88,7 @@ div#display {
         <span id="chat-user" class="input-group-addon" style="display: none;"></span>
         <input id="chat-input" type="text" class="form-control" aria-describedby="user-label" disabled>
         <span class="input-group-btn">
-          <button id="chat-send-btn" class="btn btn-default" type="button" disabled>Send</button>
+          <button id="chat-send-btn" class="ui button" type="button" disabled>Send</button>
         </span>
       </div>
     </div>
