@@ -39,6 +39,7 @@ CollabVmTunnel.prototype = new Guacamole.Tunnel();
 const collabVmTunnel = new CollabVmTunnel();
 const guacClient = new Guacamole.Client(collabVmTunnel);
 const display = document.getElementById("display");
+guacClient.getDisplay().getElement().addEventListener("mousedown", () => document.activeElement.blur());
 guacClient.getDisplay().getElement().addEventListener("click", () => {
   if (!hasTurn) {
     getSocket().sendTurnRequest();
@@ -63,19 +64,25 @@ mouse.onmouseup =
     }
   };
 
-/*
+const inputSink = new Guacamole.InputSink();
+document.body.appendChild(inputSink.getElement());
 const keyboard = new Guacamole.Keyboard(document);
+keyboard.listenTo(inputSink.getElement());
 keyboard.onkeydown = function(keysym) {
-  if (hasTurn) {
+  if (hasTurn && [document.body, inputSink.getElement()].includes(document.activeElement)) {
     guacClient.sendKeyEvent(true, keysym);
+    return false;
   }
+  return true;
 };
 keyboard.onkeyup = function(keysym) {
-  if (hasTurn) {
+  if (hasTurn && [document.body, inputSink.getElement()].includes(document.activeElement)) {
     guacClient.sendKeyEvent(false, keysym);
+    return false;
   }
+  return true;
 };
-*/
+window.onblur = keyboard.reset;
 
 const maxChatMsgLen = 100;
 $("#chat-input").keypress(function(e) {
