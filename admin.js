@@ -1,10 +1,40 @@
-import {registerUrlRouter, setUrl, getSocket, addMessageHandlers, createObject} from "common";
+import {registerUrlRouter, setUrl, getSocket, addMessageHandlers, createObject, saveSessionInfo, loadSessionInfo} from "common";
 import Tabulator from "tabulator-tables";
 import "tabulator_semantic-ui.css";
 
+
+$(".ui.checkbox").checkbox();
+showLoading();
+
 registerUrlRouter(path => {
   if (path === "/admin") {
-      initAdminPanel();
+    const socket = getSocket();
+    socket.onConnect = () => {};
+    if (window.location.hash === "#register") {
+      socket.onConnect = showRegisterForm;
+    } else if (window.location.hash.startsWith("#invite-")) {
+      const inviteId = atob(window.location.hash.substring("#invite-".length));
+      const inviteIdVector = Array.from({length: inviteId.length}, (_, i) => inviteId.charCodeAt(i)).toVector("UInt8Vector");
+      socket.onConnect = () => {
+        getSocket().validateInvite(inviteIdVector);
+      };
+    } else {
+      socket.onConnect = () => {
+        // TODO: Try restoring the session
+        /*
+        const session = loadSessionInfo();
+        if (session.username && session.sessionId) {
+
+        } else {
+          showLoginForm();
+        }
+        */
+        showLoginForm();
+      };
+    }
+    if (socket.connected) {
+      socket.onConnect();
+    }
   }
 });
 
@@ -14,179 +44,179 @@ Array.prototype.toVector = function(name) {
   return vector;
 }
 
-function initAdminPanel() {
-  function showVmConfig(vmConfig) {
-    function initCheckbox($checkbox, checked, onChange) {
-      const setValueString = "set " + (checked ? "checked" : "unchecked");
-      $checkbox.parent()
-        .checkbox() // Remove any previous handlers
-        .checkbox(setValueString) // Set current value
-        .checkbox({ // Add a new handler
-          onChange: onChange
-        });
-    }
-    initCheckbox($("#vm-settings :checkbox[name='autostart']"),
-      vmConfig.getAutoStart(), function() {
-          const vmSettings = createObject("VmSettings");
-          vmSettings.setAutoStart(this.checked);
-          socket.sendVmSettings(currentVmId, vmSettings);
-        });
-
-    $("#vm-settings :text[name='name']").val(vmConfig.getName()).off("change")
-      .change(function() {
-        const vmSettings = createObject("VmSettings");
-        vmSettings.setName(this.value);
-        socket.sendVmSettings(currentVmId, vmSettings);
+function showVmConfig(vmConfig) {
+  const socket = getSocket();
+  function initCheckbox($checkbox, checked, onChange) {
+    const setValueString = "set " + (checked ? "checked" : "unchecked");
+    $checkbox.parent()
+      .checkbox() // Remove any previous handlers
+      .checkbox(setValueString) // Set current value
+      .checkbox({ // Add a new handler
+        onChange: onChange
       });
-
-    $("#vm-settings :input[name='description']").val(vmConfig.getDescription()).off("change")
-      .change(function() {
-        const vmSettings = createObject("VmSettings");
-        vmSettings.setDescription(this.value);
-        socket.sendVmSettings(currentVmId, vmSettings);
-      });
-
-    initCheckbox($("#vm-settings :checkbox[name='safe-for-work']"),
-      vmConfig.getSafeForWork(), function() {
-          const vmSettings = createObject("VmSettings");
-          vmSettings.setSafeForWork(this.checked);
-          socket.sendVmSettings(currentVmId, vmSettings);
-        });
-
-    $("#vm-settings :text[name='operating-system']").val(vmConfig.getOperatingSystem()).off("change")
-      .change(function() {
-        const vmSettings = createObject("VmSettings");
-        vmSettings.setOperatingSystem(this.value);
-        socket.sendVmSettings(currentVmId, vmSettings);
-      });
-
-    $("#vm-settings :input[name='ram']").val(vmConfig.getRam()).off("change")
-      .change(function() {
-        const vmSettings = createObject("VmSettings");
-        vmSettings.setRam(+this.value);
-        socket.sendVmSettings(currentVmId, vmSettings);
-      });
-
-    $("#vm-settings :input[name='disk-space']").val(vmConfig.getDiskSpace()).off("change")
-      .change(function() {
-        const vmSettings = createObject("VmSettings");
-        vmSettings.setDiskSpace(+this.value);
-        socket.sendVmSettings(currentVmId, vmSettings);
-      });
-
-    $("#vm-settings :text[name='start-command']").val(vmConfig.getStartCommand()).off("change")
-      .change(function() {
-        const vmSettings = createObject("VmSettings");
-        vmSettings.setStartCommand(this.value);
-        socket.sendVmSettings(currentVmId, vmSettings);
-      });
-
-    $("#vm-settings :text[name='stop-command']").val(vmConfig.getStopCommand()).off("change")
-      .change(function() {
-        const vmSettings = createObject("VmSettings");
-        vmSettings.setStopCommand(this.value);
-        socket.sendVmSettings(currentVmId, vmSettings);
-      });
-
-    initCheckbox($("#vm-settings :checkbox[name='turns-enabled']"),
-      vmConfig.getTurnsEnabled(), function() {
-          const vmSettings = createObject("VmSettings");
-          vmSettings.setTurnsEnabled(this.checked);
-          socket.sendVmSettings(currentVmId, vmSettings);
-        });
-
-    $("#vm-settings :input[name='turn-time']").val(vmConfig.getTurnTime()).off("change")
-      .change(function() {
-        const vmSettings = createObject("VmSettings");
-        vmSettings.setTurnTime(+this.value);
-        socket.sendVmSettings(currentVmId, vmSettings);
-      });
-
-    initCheckbox($("#vm-settings :checkbox[name='uploads-enabled']"),
-      vmConfig.getUploadsEnabled(), function() {
-          const vmSettings = createObject("VmSettings");
-          vmSettings.setUploadsEnabled(this.checked);
-          socket.sendVmSettings(currentVmId, vmSettings);
-        });
-
-    $("#vm-settings :input[name='upload-cooldown-time']").val(vmConfig.getUploadCooldownTime()).off("change")
-      .change(function() {
-        const vmSettings = createObject("VmSettings");
-        vmSettings.setUploadCooldownTime(+this.value);
-        socket.sendVmSettings(currentVmId, vmSettings);
-      });
-
-    // TODO: set select to appropriate unit
-    $("#vm-settings :input[name='max-upload-size']").val(vmConfig.getMaxUploadSize()).off("change")
-      .change(function() {
-        const vmSettings = createObject("VmSettings");
-        const unitValue = this.nextElementSibling.value;
-        vmSettings.setMaxUploadSize(this.value * Math.pow(2, 10 * unitValue));
-        socket.sendVmSettings(currentVmId, vmSettings);
-      }).next().off("change").change(() => $(this).prev().trigger("change"));
-
-    $("#vm-settings :input[name='protocol']").val(vmConfig.getProtocol()).off("change")
-      .change(function() {
-        const vmSettings = createObject("VmSettings");
-        vmSettings.setProtocol(+this.value);
-        socket.sendVmSettings(currentVmId, vmSettings);
-      });
-
-    function sendGuacamoleParameters() {
-      const guacParams = 
-        guacTable.getData().filter(row => row["name"])
-          .map(row => ({name: row.name, value: row.value || ""}))
-          .toVector("GuacamoleParameters");
-      const vmSettings = createObject("VmSettings");
-      vmSettings.setGuacamoleParameters(guacParams);
-      socket.sendVmSettings(currentVmId, vmSettings);
-    }
-    const guacTable = new Tabulator("#guac-table", {
-      layout: "fitColumns",
-      placeholder: $("#guac-table-placeholder")[0],
-      movableRows: true,
-      columns:[
-        {title: "Name", field: "name", editor: "input"},
-        {title: "Value", field: "value", editor: "input"},
-        {formatter: "buttonCross", width:"5%", align:"center", headerSort: false,
-          cellClick: (e, cell) => cell.getRow().delete()
-        }
-      ],
-      data: Array.from(
-        {length: vmConfig.getGuacamoleParameters().size()},
-        (_, i) => vmConfig.getGuacamoleParameters().get(i)),
-      footerElement: $("#guac-table-footer").children().click(async () =>
-        {
-          const row = await guacTable.addRow({});
-          row.getCell("name").edit();
-        }).end()[0],
-      dataEdited: sendGuacamoleParameters,
-      rowAdded: row => {
-      },
-      rowUpdated: row => {
-      },
-      rowDeleted: row => {
-      },
-      rowMoved: row => {
-      }
-    });
-
-    $("#delete-vm-button").off("click").click(() => {
-      $("#delete-vm-modal").modal({
-        onApprove: () => {
-          $("#vm-settings").hide("slow");
-          socket.sendDeleteVm(currentVmId);
-        },
-      }).modal("show");
-    });
-
-    $("#vm-settings").show("slow");
-
-    // The table must be redrawn after its parent becomes visible
-    guacTable.redraw();
   }
+  initCheckbox($("#vm-settings :checkbox[name='autostart']"),
+    vmConfig.getAutoStart(), function() {
+        const vmSettings = createObject("VmSettings");
+        vmSettings.setAutoStart(this.checked);
+        socket.sendVmSettings(currentVmId, vmSettings);
+      });
 
-  let currentVmId;
+  $("#vm-settings :text[name='name']").val(vmConfig.getName()).off("change")
+    .change(function() {
+      const vmSettings = createObject("VmSettings");
+      vmSettings.setName(this.value);
+      socket.sendVmSettings(currentVmId, vmSettings);
+    });
+
+  $("#vm-settings :input[name='description']").val(vmConfig.getDescription()).off("change")
+    .change(function() {
+      const vmSettings = createObject("VmSettings");
+      vmSettings.setDescription(this.value);
+      socket.sendVmSettings(currentVmId, vmSettings);
+    });
+
+  initCheckbox($("#vm-settings :checkbox[name='safe-for-work']"),
+    vmConfig.getSafeForWork(), function() {
+        const vmSettings = createObject("VmSettings");
+        vmSettings.setSafeForWork(this.checked);
+        socket.sendVmSettings(currentVmId, vmSettings);
+      });
+
+  $("#vm-settings :text[name='operating-system']").val(vmConfig.getOperatingSystem()).off("change")
+    .change(function() {
+      const vmSettings = createObject("VmSettings");
+      vmSettings.setOperatingSystem(this.value);
+      socket.sendVmSettings(currentVmId, vmSettings);
+    });
+
+  $("#vm-settings :input[name='ram']").val(vmConfig.getRam()).off("change")
+    .change(function() {
+      const vmSettings = createObject("VmSettings");
+      vmSettings.setRam(+this.value);
+      socket.sendVmSettings(currentVmId, vmSettings);
+    });
+
+  $("#vm-settings :input[name='disk-space']").val(vmConfig.getDiskSpace()).off("change")
+    .change(function() {
+      const vmSettings = createObject("VmSettings");
+      vmSettings.setDiskSpace(+this.value);
+      socket.sendVmSettings(currentVmId, vmSettings);
+    });
+
+  $("#vm-settings :text[name='start-command']").val(vmConfig.getStartCommand()).off("change")
+    .change(function() {
+      const vmSettings = createObject("VmSettings");
+      vmSettings.setStartCommand(this.value);
+      socket.sendVmSettings(currentVmId, vmSettings);
+    });
+
+  $("#vm-settings :text[name='stop-command']").val(vmConfig.getStopCommand()).off("change")
+    .change(function() {
+      const vmSettings = createObject("VmSettings");
+      vmSettings.setStopCommand(this.value);
+      socket.sendVmSettings(currentVmId, vmSettings);
+    });
+
+  initCheckbox($("#vm-settings :checkbox[name='turns-enabled']"),
+    vmConfig.getTurnsEnabled(), function() {
+        const vmSettings = createObject("VmSettings");
+        vmSettings.setTurnsEnabled(this.checked);
+        socket.sendVmSettings(currentVmId, vmSettings);
+      });
+
+  $("#vm-settings :input[name='turn-time']").val(vmConfig.getTurnTime()).off("change")
+    .change(function() {
+      const vmSettings = createObject("VmSettings");
+      vmSettings.setTurnTime(+this.value);
+      socket.sendVmSettings(currentVmId, vmSettings);
+    });
+
+  initCheckbox($("#vm-settings :checkbox[name='uploads-enabled']"),
+    vmConfig.getUploadsEnabled(), function() {
+        const vmSettings = createObject("VmSettings");
+        vmSettings.setUploadsEnabled(this.checked);
+        socket.sendVmSettings(currentVmId, vmSettings);
+      });
+
+  $("#vm-settings :input[name='upload-cooldown-time']").val(vmConfig.getUploadCooldownTime()).off("change")
+    .change(function() {
+      const vmSettings = createObject("VmSettings");
+      vmSettings.setUploadCooldownTime(+this.value);
+      socket.sendVmSettings(currentVmId, vmSettings);
+    });
+
+  // TODO: set select to appropriate unit
+  $("#vm-settings :input[name='max-upload-size']").val(vmConfig.getMaxUploadSize()).off("change")
+    .change(function() {
+      const vmSettings = createObject("VmSettings");
+      const unitValue = this.nextElementSibling.value;
+      vmSettings.setMaxUploadSize(this.value * Math.pow(2, 10 * unitValue));
+      socket.sendVmSettings(currentVmId, vmSettings);
+    }).next().off("change").change(() => $(this).prev().trigger("change"));
+
+  $("#vm-settings :input[name='protocol']").val(vmConfig.getProtocol()).off("change")
+    .change(function() {
+      const vmSettings = createObject("VmSettings");
+      vmSettings.setProtocol(+this.value);
+      socket.sendVmSettings(currentVmId, vmSettings);
+    });
+
+  function sendGuacamoleParameters() {
+    const guacParams = 
+      guacTable.getData().filter(row => row["name"])
+        .map(row => ({name: row.name, value: row.value || ""}))
+        .toVector("GuacamoleParameters");
+    const vmSettings = createObject("VmSettings");
+    vmSettings.setGuacamoleParameters(guacParams);
+    socket.sendVmSettings(currentVmId, vmSettings);
+  }
+  const guacTable = new Tabulator("#guac-table", {
+    layout: "fitColumns",
+    placeholder: $("#guac-table-placeholder")[0],
+    movableRows: true,
+    columns:[
+      {title: "Name", field: "name", editor: "input"},
+      {title: "Value", field: "value", editor: "input"},
+      {formatter: "buttonCross", width:"5%", align:"center", headerSort: false,
+        cellClick: (e, cell) => cell.getRow().delete()
+      }
+    ],
+    data: Array.from(
+      {length: vmConfig.getGuacamoleParameters().size()},
+      (_, i) => vmConfig.getGuacamoleParameters().get(i)),
+    footerElement: $("#guac-table-footer").children().click(async () =>
+      {
+        const row = await guacTable.addRow({});
+        row.getCell("name").edit();
+      }).end()[0],
+    dataEdited: sendGuacamoleParameters,
+    rowAdded: row => {
+    },
+    rowUpdated: row => {
+    },
+    rowDeleted: row => {
+    },
+    rowMoved: row => {
+    }
+  });
+
+  $("#delete-vm-button").off("click").click(() => {
+    $("#delete-vm-modal").modal({
+      onApprove: () => {
+        $("#vm-settings").hide("slow");
+        socket.sendDeleteVm(currentVmId);
+      },
+    }).modal("show");
+  });
+
+  $("#vm-settings").show("slow");
+
+  // The table must be redrawn after its parent becomes visible
+  guacTable.redraw();
+}
+
+let currentVmId;
 addMessageHandlers({
   onVmCreated: vmId => {
     currentVmId = vmId;
@@ -207,19 +237,19 @@ addMessageHandlers({
           .prop("disabled", data.length !== 1)
           .off("click").click(() => {
             currentVmId = data[0].id;
-            socket.sendReadVmConfig(currentVmId);
+            getSocket().sendReadVmConfig(currentVmId);
           });
         $("#start-vm-button, #stop-vm-button, #restart-vm-button")
           .prop("disabled", !data.length);
         const vmIds = data.map(vm => vm.id).toVector("UInt32Vector");
         $("#start-vm-button").off("click").click(() => {
-          socket.sendStartVmsRequest(vmIds);
+          getSocket().sendStartVmsRequest(vmIds);
         });
         $("#stop-vm-button").off("click").click(() => {
-          socket.sendStopVmsRequest(vmIds);
+          getSocket().sendStopVmsRequest(vmIds);
         });
         $("#restart-vm-button").off("click").click(() => {
-          socket.sendRestartVmsRequest(vmIds);
+          getSocket().sendRestartVmsRequest(vmIds);
         });
       }
     });
@@ -246,39 +276,36 @@ addMessageHandlers({
   onLoginSucceeded: (sessionId, username) => {
     $("#login-button").removeClass("loading");
     saveSessionInfo(sessionId, username);
+    getSocket().sendServerConfigRequest();
+    getSocket().sendReadVmsRequest();
   },
   onLoginFailed: (error) => {
     $("#login-button").removeClass("loading");
-    console.error(error);
+    $("#login-status").text(error);
   },
   onGuacInstr: (name, instr) => {
     collabVmTunnel.oninstruction(name, instr);
   },
   onChatMessage: (channelId, message) => {
     debugger;
+  },
+  onCreateInviteResult: id => {
+    id = Array.from({length: id.size()}, (_, i) => id.get(i));
+    const base64Id = btoa(String.fromCharCode.apply(null, id));
+    console.log(`Invite URL:\n${window.location.origin}/${window.location.pathname}#invite-${base64Id}`);
   }
 });
-
-function onSocketConnected() {
-  socket.sendServerConfigRequest();
-  socket.sendReadVmsRequest();
-}
-const socket = getSocket();
-window.socket = socket;
-socket.onConnect = onSocketConnected;
-if (socket.connected) {
-  socket.onConnect();
-}
 
 let twoFactorToken;
 
 $("#login-button").click(function() {
-  socket.sendLoginRequest($("#username-box").val(), $("#password-box").val());
+  $("#login-status").text("");
+  getSocket().sendLoginRequest($("#username-box").val(), $("#password-box").val());
   $(this).addClass("loading");
 });
 
 $("#register-button").click(function() {
-  socket.sendAccountRegistrationRequest($("#username-box").val(),
+  getSocket().sendAccountRegistrationRequest($("#username-box").val(),
     $("#password-box").val(), twoFactorToken || "");
   $(this).addClass("loading");
 });
@@ -339,46 +366,46 @@ $("#enable-2fa-toggle").checkbox({
 $("#account-registration-checkbox").change(function() {
   var config = window.serverConfig;
   config.setAllowAccountRegistration(this.checked);
-  socket.sendServerConfigModifications(config);
+  getSocket().sendServerConfigModifications(config);
 });
 
 $("#recaptcha-enabled-checkbox").change(function() {
   var config = window.serverConfig;
   config.setRecaptchaEnabled(this.checked);
-  socket.sendServerConfigModifications(config);
+  getSocket().sendServerConfigModifications(config);
 });
 
 $("#user-vms-enabled-checkbox").change(function() {
   var config = window.serverConfig;
   config.setUserVmsEnabled(this.checked);
-  socket.sendServerConfigModifications(config);
+  getSocket().sendServerConfigModifications(config);
 });
 
 $("#recaptcha-twoFactorToken-box").change(function() {
   var config = window.serverConfig;
   config.setRecaptchaKey(this.value);
-  socket.sendServerConfigModifications(config);
+  getSocket().sendServerConfigModifications(config);
 });
 
 $("#recaptcha-key-box").change(function() {
   const config = window.serverConfig;
   config.setRecaptchaKey(this.value);
-  socket.sendServerConfigModifications(config);
+  getSocket().sendServerConfigModifications(config);
 });
 
 $("#ban-ip-cmd-box").change(function() {
   const config = window.serverConfig;
   config.setBanIpCommand(this.value);
-  socket.sendServerConfigModifications(config);
+  getSocket().sendServerConfigModifications(config);
 });
 
 $("#unban-ip-cmd-box").change(function() {
   const config = window.serverConfig;
   config.setUnbanIpCommand(this.value);
-  socket.sendServerConfigModifications(config);
+  getSocket().sendServerConfigModifications(config);
 });
 
-$("#new-vm-button").click(() => socket.sendCreateVmRequest(createObject("VmSettings")));
+$("#new-vm-button").click(() => getSocket().sendCreateVmRequest(createObject("VmSettings")));
 
 function showLoginForm() {
   $("#loading").hide();
@@ -465,11 +492,9 @@ function showServerConfig(config) {
 //showServerConfig();
 function loadServerConfig() {
   showLoading();
-  socket.getServerConfigRequest();
+  $("#loading").hide();
+  //socket.getServerConfigRequest();
 }
 //loadServerConfig();
 //showRegisterForm();
 //showServerConfig();
-showVms();
-$(".ui.checkbox").checkbox();
-}

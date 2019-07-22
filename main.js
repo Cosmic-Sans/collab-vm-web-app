@@ -1,4 +1,4 @@
-import {registerUrlRouter, setUrl, getSocket, addMessageHandlers} from "common";
+import {registerUrlRouter, setUrl, getSocket, addMessageHandlers, saveSessionInfo, loadSessionInfo} from "common";
 import Guacamole from "Guacamole";
 import {fromByteArray as ipFromByteArray} from "ipaddr.js";
 
@@ -111,6 +111,16 @@ $("#chat-send-btn").click(function() {
 $("#end-turn-btn").click(() => getSocket().endTurn());
 $("#pause-turns-btn").click(() => getSocket().pauseTurnTimer());
 $("#resume-turns-btn").click(() => getSocket().resumeTurnTimer());
+$("#login-item").show().click(() => {
+  $("#login-modal").modal({
+    closable: true,
+  }).modal("show");
+});
+$("#login-btn").click(() => {
+  $("#login-status").text("");
+  $("#login-btn").addClass("loading");
+  getSocket().sendLoginRequest($("#username-box").val(), $("#password-box").val());
+});
 
 collabVmTunnel.onstatechange = function(state) {
   if (state == Guacamole.Tunnel.State.CLOSED) {
@@ -346,6 +356,9 @@ const viewServerList = () => {
       $("#vm-list").hide();
 			$("#chat-input, #chat-send-btn").prop("disabled", false);
     },
+    onDisconnect: () => {
+      $("#chat-user").hide();
+    },
     onVmDescription: description =>
       $("#vm-description").text(description),
     onVmTurnInfo: (usersWaitingVector, timeRemaining, isPaused) => {
@@ -465,10 +478,14 @@ const viewServerList = () => {
       console.error(error);
     },
     onLoginSucceeded: (sessionId, username) => {
+      $("#login-modal").modal("hide");
+      $("#login-btn").removeClass("loading");
       saveSessionInfo(sessionId, username);
+      $("#chat-user").text(username).show();
     },
-    onLoginFailed: (error) => {
-      console.error(error);
+    onLoginFailed: error => {
+      $("#login-btn").removeClass("loading");
+      $("#login-status").text(error);
     },
     onGuacInstr: (name, instr) =>
       collabVmTunnel.oninstruction(name, instr)

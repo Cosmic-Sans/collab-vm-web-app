@@ -41,8 +41,14 @@ const setClassProperties = (obj, props) => {
 const createObject = (name, properties) => {
   return setClassProperties(new Module[name], properties || {});
 };
-
-export { registerUrlRouter, setUrl, getSocket, addMessageHandlers, createObject };
+const saveSessionInfo = (sessionId, username) => {
+  localStorage["sessionId"] = sessionId;
+  localStorage["username"] = username;
+};
+const loadSessionInfo = () => {
+  return {sessionId: localStorage["sessionId"], username: localStorage["username"]};
+};
+export { registerUrlRouter, setUrl, getSocket, addMessageHandlers, createObject, saveSessionInfo, loadSessionInfo };
 
 runtime.onRuntimeInitialized(() => {
 
@@ -75,6 +81,9 @@ runtime.onRuntimeInitialized(() => {
     webSocket.onmessage = ({data}) => deserializer.deserialize(data);
     webSocket.onclose = () => {
       if (connected) {
+        if (serializer.onDisconnect) {
+          serializer.onDisconnect();
+        }
         connected = false;
         connectWebSocket();
       } else {
