@@ -128,16 +128,12 @@ struct UserInviteWrapper {
         void  setInviteName(std::string&& inviteName) { inviteName_ = std::move(inviteName); }
         std::string getUsername() const { return userInvite_.getUsername(); }
         void  setUsername(std::string&& username) { username_ = std::move(username); }
-        bool getUsernameReserved() const { return userInvite_.getUsernameReserved(); }
-        void  setUsernameReserved(bool&& usernameReserved) { usernameReserved_ = std::move(usernameReserved); }
         bool getAdmin() const { return userInvite_.getAdmin(); }
         void  setAdmin(bool&& admin) { admin_ = std::move(admin); }
-private:
         CollabVmClientMessage::UserInvite::Reader userInvite_;
         std::string id_;
         std::string inviteName_;
         std::string username_;
-        bool usernameReserved_;
         bool admin_;
 };
 
@@ -831,6 +827,18 @@ struct Deserializer {
         case CollabVmServerMessage::Message::VM_DESCRIPTION:
           onVmDescription(message.getVmDescription());
           break;
+        case CollabVmServerMessage::Message::CREATE_INVITE_RESULT:
+        {
+          const auto id = message.getCreateInviteResult();
+          onCreateInviteResult({id.begin(), id.end()});
+          break;
+        }
+        case CollabVmServerMessage::Message::INVITE_VALIDATION_RESPONSE:
+        {
+          const auto invite = message.getInviteValidationResponse();
+          onInviteValidationResponse(invite.getIsValid(), invite.getUsername());
+          break;
+        }
       }
       word_array = kj::ArrayPtr(reader.getEnd(), word_array.end());
     }
@@ -1166,6 +1174,8 @@ struct Deserializer {
   virtual void onAdminUserList(std::uint32_t channel_id, std::vector<std::string>&& usernames, std::vector<std::vector<std::uint8_t>>&& ip_addresses) = 0;
   virtual void onAdminUserListAdd(std::uint32_t channel_id, std::string&& username, std::vector<std::uint8_t> ip_address) = 0;
   virtual void onVmDescription(std::string&& username) = 0;
+  virtual void onCreateInviteResult(std::vector<std::uint8_t>&& id) = 0;
+  virtual void onInviteValidationResponse(bool is_valid, std::string&& username) = 0;
 
   virtual ~Deserializer() = default;
 };
@@ -1242,6 +1252,12 @@ struct DeserializerWrapper : public emscripten::wrapper<Deserializer> {
   virtual void onVmDescription(std::string&& description) {
     return call<void>("onVmDescription", std::move(description));
   }
+  virtual void onCreateInviteResult(std::vector<std::uint8_t>&& id) {
+    return call<void>("onCreateInviteResult", std::move(id));
+  }
+  virtual void onInviteValidationResponse(bool is_valid, std::string&& username) {
+    return call<void>("onInviteValidationResponse", is_valid, std::move(username));
+  }
 };
 
 struct Serializer {
@@ -1309,15 +1325,18 @@ const auto byte_array = array.asBytes();
 		messageReady(message_builder);
 	}
 
-	void sendAccountRegistrationRequest(const std::string& username, const std::string& password, const std::string& two_factor_token) {
+	void sendAccountRegistrationRequest(const std::string& username, const std::string& password, const std::string& two_factor_token, const std::vector<std::uint8_t>& invite_id) {
 		capnp::MallocMessageBuilder message_builder;
 		auto message = message_builder.initRoot<CollabVmClientMessage::Message>();
 		auto registration_request = message.initAccountRegistrationRequest();
 		registration_request.setUsername(username);
 		registration_request.setPassword(password);
-		if (two_factor_token.length()) {
+		if (!two_factor_token.empty()) {
 			registration_request.setTwoFactorToken(capnp::Data::Reader(reinterpret_cast<const uint8_t*>(two_factor_token.c_str()), two_factor_token.length()));
 		}
+    if (!invite_id.empty()) {
+      registration_request.setInviteId(kj::ArrayPtr<const std::uint8_t>(invite_id.data(), invite_id.size()));
+    }
 		messageReady(message_builder);
 	}
 
@@ -1497,6 +1516,23 @@ const auto byte_array = array.asBytes();
 		messageReady(message_builder);
   }
 
+	void createUserInvite(UserInviteWrapper& invite) {
+		capnp::MallocMessageBuilder message_builder;
+		auto message = message_builder.initRoot<CollabVmClientMessage::Message>();
+    auto invite_message = message.initCreateInvite();
+    invite_message.setInviteName(invite.inviteName_);
+    invite_message.setUsername(invite.username_);
+    invite_message.setAdmin(invite.admin_);
+    messageReady(message_builder);
+	}
+
+	void validateInvite(const std::vector<std::uint8_t>& invite_id) {
+		capnp::MallocMessageBuilder message_builder;
+		auto message = message_builder.initRoot<CollabVmClientMessage::Message>();
+		message.setValidateInvite(kj::ArrayPtr<const std::uint8_t>(invite_id.data(), invite_id.size()));
+		messageReady(message_builder);
+	}
+
 	virtual void onMessageReady(const emscripten::val& message) = 0;
 
   virtual ~Serializer() = default;
@@ -1555,13 +1591,6 @@ emscripten::value_object<GuacamoleParameterWrapper>("GuacamoleParameter")
 	.field("username", &LoginWrapper::getUsername, &LoginWrapper::setUsername)
 	.field("password", &LoginWrapper::getPassword, &LoginWrapper::setPassword)
 	;
-/*
-	emscripten::value_object<RegisterAccountWrapper>("RegisterAccount")
-	.field("username", &RegisterAccountWrapper::getUsername, &RegisterAccountWrapper::setUsername)
-	.field("password", &RegisterAccountWrapper::getPassword, &RegisterAccountWrapper::setPassword)
-	.field("twoFactorToken", &RegisterAccountWrapper::getTwoFactorToken, &RegisterAccountWrapper::setTwoFactorToken)
-	;
-*/
 
 emscripten::value_object<RegisterAccountWrapper>("RegisterAccount")
         .field("username", &RegisterAccountWrapper::getUsername, &RegisterAccountWrapper::setUsername)
@@ -1573,7 +1602,6 @@ emscripten::value_object<UserInviteWrapper>("UserInvite")
         .field("id", &UserInviteWrapper::getId, &UserInviteWrapper::setId)
         .field("inviteName", &UserInviteWrapper::getInviteName, &UserInviteWrapper::setInviteName)
         .field("username", &UserInviteWrapper::getUsername, &UserInviteWrapper::setUsername)
-        .field("usernameReserved", &UserInviteWrapper::getUsernameReserved, &UserInviteWrapper::setUsernameReserved)
         .field("admin", &UserInviteWrapper::getAdmin, &UserInviteWrapper::setAdmin)
 ;
 
@@ -1638,6 +1666,8 @@ emscripten::class_<ServerSettingsWrapper>("ServerSetting")
 	.function("pauseTurnTimer", &Serializer::pauseTurnTimer)
 	.function("resumeTurnTimer", &Serializer::resumeTurnTimer)
 	.function("endTurn", &Serializer::endTurn)
+	.function("createUserInvite", &Serializer::createUserInvite)
+	.function("validateInvite", &Serializer::validateInvite)
 	.allow_subclass<SerializerWrapper>("SerializerWrapper")
 		//.class_function("getServerConfigModification", &Serializer::getServerConfigModification)
 	;

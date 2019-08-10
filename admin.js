@@ -6,6 +6,14 @@ import "tabulator_semantic-ui.css";
 $(".ui.checkbox").checkbox();
 showLoading();
 
+const getInviteId = () => {
+  const inviteId =
+    window.location.hash.startsWith("#invite-")
+    ? atob(window.location.hash.substring("#invite-".length))
+    : "";
+  return Array.from({length: inviteId.length}, (_, i) => inviteId.charCodeAt(i)).toVector("UInt8Vector");
+};
+
 registerUrlRouter(path => {
   if (path === "/admin") {
     const socket = getSocket();
@@ -13,10 +21,8 @@ registerUrlRouter(path => {
     if (window.location.hash === "#register") {
       socket.onConnect = showRegisterForm;
     } else if (window.location.hash.startsWith("#invite-")) {
-      const inviteId = atob(window.location.hash.substring("#invite-".length));
-      const inviteIdVector = Array.from({length: inviteId.length}, (_, i) => inviteId.charCodeAt(i)).toVector("UInt8Vector");
       socket.onConnect = () => {
-        getSocket().validateInvite(inviteIdVector);
+        getSocket().validateInvite(getInviteId());
       };
     } else {
       socket.onConnect = () => {
@@ -266,11 +272,11 @@ addMessageHandlers({
     showServerConfig(config);
   },
   onRegisterAccountSucceeded: (sessionId, username) => {
-    $("#login-button").removeClass("loading");
+    $("#register-button").removeClass("loading");
     saveSessionInfo(sessionId, username);
   },
   onRegisterAccountFailed: error => {
-    $("#login-button").removeClass("loading");
+    $("#register-button").removeClass("loading");
     console.error(error);
   },
   onLoginSucceeded: (sessionId, username) => {
@@ -291,8 +297,22 @@ addMessageHandlers({
   },
   onCreateInviteResult: id => {
     id = Array.from({length: id.size()}, (_, i) => id.get(i));
+    if (!id.length) {
+      console.error("Failed to create invite");
+      return;
+    }
     const base64Id = btoa(String.fromCharCode.apply(null, id));
-    console.log(`Invite URL:\n${window.location.origin}/${window.location.pathname}#invite-${base64Id}`);
+    const link = `${window.location.origin}${window.location.pathname}#invite-${base64Id}`;
+    $("#user-invite-modal-link").attr("href", link).text(link);
+    $("#user-invite-modal").modal("show");
+  },
+  onInviteValidationResponse: (isValid, username) => {
+    if (isValid) {
+      showRegisterForm();
+      $("#username-box").val(username).prop("disabled", true);
+    } else {
+      console.error("Invalid invite");
+    }
   }
 });
 
@@ -305,8 +325,9 @@ $("#login-button").click(function() {
 });
 
 $("#register-button").click(function() {
-  getSocket().sendAccountRegistrationRequest($("#username-box").val(),
-    $("#password-box").val(), twoFactorToken || "");
+  const usernameBox = $("#username-box");
+  getSocket().sendAccountRegistrationRequest(usernameBox.prop("disabled") ? "" : usernameBox.val(),
+    $("#password-box").val(), twoFactorToken || "", getInviteId());
   $(this).addClass("loading");
 });
 
@@ -403,6 +424,16 @@ $("#unban-ip-cmd-box").change(function() {
   const config = window.serverConfig;
   config.setUnbanIpCommand(this.value);
   getSocket().sendServerConfigModifications(config);
+});
+
+$("#user-invite-create-button").click(() => {
+  common.getSocket().createUserInvite(
+    {
+      id: "",
+      inviteName: $("#user-invite-description-box").val(),
+      username: $("#user-invite-username-box").val(),
+      admin: $("#user-invite-admin-checkbox").prop("checked")
+    });
 });
 
 $("#new-vm-button").click(() => getSocket().sendCreateVmRequest(createObject("VmSettings")));

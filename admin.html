@@ -163,6 +163,41 @@
     </div>
     <div class="eight wide column">
       <div class="ui form segment">
+        <h3 class="ui dividing header">User Invites</h3>
+        <div class="field">
+          <label>Description</label>
+          <input id="user-invite-description-box" type="text" placeholder="Description (optional)">
+        </div>
+        <div class="field">
+          <label>Username</label>
+          <input id="user-invite-username-box" type="text" placeholder="Username (optional)">
+        </div>
+        <div class="field">
+          <div class="ui checkbox">
+            <input type="checkbox" id="user-invite-admin-checkbox">
+            <label>Admin</label>
+          </div>
+        </div>
+        <div class="ui modal" id="user-invite-modal">
+          <i class="close icon"></i>
+          <div class="header">
+            Invite Link
+          </div>
+          <div class="content image">
+            <i class="icon large linkify"></i>
+            <a id="user-invite-modal-link" class="description" href="#" target="_blank"></a>
+          </div>
+          <div class="actions">
+            <div class="ui button">OK</div>
+          </div>
+        </div>
+        <button class="ui positive button" type="button" id="user-invite-create-button">
+          <i class="plus icon"></i> Create Invite
+        </button>
+      </div>
+    </div>
+    <div class="eight wide column">
+      <div class="ui form segment">
         <h3 class="ui header">Virtual Machines</h3>
         <div id="vm-list" class="ui celled striped table">
         </div>
