@@ -21,9 +21,12 @@ module.exports = merge(common.config, {
 			 new MiniCssExtractPlugin(),
 	  ],
   optimization: {
+    /*
+    // Why doesn't this work?
      splitChunks: {
        chunks: 'all'
      },
+     */
     minimizer: [new TerserPlugin()]
    }
 });

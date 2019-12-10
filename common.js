@@ -23,7 +23,7 @@ const registerUrlRouter = router => {
   routers.push(router);
 };
 const setUrl = url => {
-  const handledRouter = routers.find(router => router(url));
+  const handledRouter = routers.find(router => router(url.replace(/\.html$/, "")));
 };
 let serializer = {connected: false};
 const getSocket = () => serializer;
@@ -68,7 +68,7 @@ runtime.onRuntimeInitialized(() => {
   const deserializer = Module.Deserializer.implement(messageHandlers);
 
   function connectWebSocket() {
-    webSocket = new WebSocket("ws://" + WEBSOCKET_ADDRESS);
+    webSocket = new WebSocket(WEBSOCKET_ADDRESS);
     webSocket.binaryType = "arraybuffer";
     let connected = false;
     webSocket.onopen = () => {

@@ -1,12 +1,8 @@
 module.exports.locateFile = file => {
-  if (file == "collab-vm-web-app.wasm") {
+  if (file === "collab-vm-web-app.wasm") {
     return require("collab-vm-web-app.wasm");
-  } else if (file == "collab-vm-web-app.wast") {
-    try{
-    return require("collab-vm-web-app.wast");
-    } catch {}
-    //return require("collab-vm-web-app.wasm");
   }
+  return file;
 };
 let runtimeInitializedHandler;
 module.exports.isRuntimeInitialized = false;
