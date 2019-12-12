@@ -175,8 +175,8 @@ const displayVmList = vms => {
            ${vm.uploads ? '<div class="item"><i class="fa fa-upload" aria-hidden="true"></i> File Uploads</li>' : ''}
            ${vm.safeForWork ? '<div class="item"><i class="fa fa-shield-alt" aria-hidden="true"></i> Safe for Work</li>' : ''}
            <div class="item"><i class="fab fa-windows" aria-hidden="true"></i> ${vm.os}</li>
-           <div class="item"><i class="fas fa-hdd" aria-hidden="true"></i> ${vm.ram} GiB RAM</li>
-           <div class="item"><i class="fa fa-archive" aria-hidden="true"></i> ${vm.disk} GiB Disk Space</li>
+           <div class="item"><i class="fa fa-archive" aria-hidden="true"></i> ${vm.ram} GiB RAM</li>
+           <div class="item"><i class="fas fa-hdd" aria-hidden="true"></i> ${vm.disk} GiB Disk Space</li>
            <div class="item"><i class="fa fa-user" aria-hidden="true"></i> Hosted by ${vm.host}</li>
            <div class="item"><i class="fa fa-user" aria-hidden="true"></i> ${vm.viewerCount} Viewers</li>
        </ul>
