@@ -1,4 +1,5 @@
 import {registerUrlRouter, setUrl, getSocket, addMessageHandlers, createObject, saveSessionInfo, loadSessionInfo} from "common";
+import $ from "jquery";
 import Tabulator from "tabulator-tables";
 import "tabulator_semantic-ui.css";
 
@@ -529,3 +530,4 @@ function loadServerConfig() {
 //loadServerConfig();
 //showRegisterForm();
 //showServerConfig();
+//showVms();

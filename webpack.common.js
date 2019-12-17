@@ -1,6 +1,10 @@
-const publicPath = "/collab-vm/";
+const publicPath = "/";
 const collabVmPath = "build/collab-vm-web-app/";
-const webSocketAddress = "localhost:8081";
+// Gets the address of the WebSocket server
+const getWebSocketAddress = function() {
+  // Use the URL of the current page
+  return (window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host;
+};
 
 const path = require("path");
 const webpack = require("webpack");
@@ -77,8 +81,8 @@ module.exports.config = {
 	},
 	plugins: [
 		new webpack.DefinePlugin({
-      // Address of the WebSocket server
-			WEBSOCKET_ADDRESS: JSON.stringify(webSocketAddress)
+			WEBSOCKET_ADDRESS: "(" + getWebSocketAddress.toString() + ")()",
+      __DEV__: false
 		}),
     mainHtmlWebpackPlugin,
     adminHtmlWebpackPlugin

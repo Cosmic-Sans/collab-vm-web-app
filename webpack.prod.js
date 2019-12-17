@@ -1,3 +1,4 @@
+const webpack = require("webpack");
 const merge = require("webpack-merge");
 const common = require("./webpack.common.js");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
@@ -9,21 +10,27 @@ common.setHtmlWebpackPluginOptions({
 
 module.exports = merge(common.config, {
   mode: "production",
-	module: {
-	    rules: [
+  module: {
+      rules: [
         {
           test: /\.css$/i,
           use: ['style-loader', 'css-loader'],
         }
-	    ]
-	  },
-	  plugins: [
-			 new MiniCssExtractPlugin(),
-	  ],
+      ]
+    },
+    plugins: [
+       new webpack.DefinePlugin({
+         __DEV__: false
+       }),
+       new MiniCssExtractPlugin()
+    ],
   optimization: {
+    /*
+    // Why doesn't this work?
      splitChunks: {
        chunks: 'all'
      },
+     */
     minimizer: [new TerserPlugin()]
    }
 });

@@ -1,4 +1,5 @@
 import {registerUrlRouter, setUrl, getSocket, addMessageHandlers, saveSessionInfo, loadSessionInfo} from "common";
+import $ from "jquery";
 import Guacamole from "Guacamole";
 import {fromByteArray as ipFromByteArray} from "ipaddr.js";
 
