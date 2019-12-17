@@ -5,7 +5,7 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 	<!--<script src="node_modules/otpauth/dist/otpauth.min.js"></script>-->
-	<script src="https://www.google.com/recaptcha/api.js"></script>
+	<script src="https://www.google.com/recaptcha/api.js?render=explicit" async defer></script>
 	<style type="text/css">
 		#login-register-container {
 			height: 100%;
@@ -45,10 +45,9 @@
 					</div>
 
 					<div id="login-form">
-						<div class="field">
-							<form>
-								<div class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"></div>
-							</form>
+						<div class="field" id="captcha">
+              <div class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI">
+              </div>
 						</div>
 						<div id="login-status"></div>
 						<div id="login-button" class="ui fluid large positive submit button">Login</div>
@@ -137,16 +136,6 @@
         </div>
         <div class="field">
           <div class="ui checkbox">
-            <input type="checkbox" id="recaptcha-enabled-checkbox">
-            <label>Enable ReCaptcha</label>
-          </div>
-        </div>
-        <div class="field">
-          <label>ReCaptcha Key</label>
-          <input id="recaptcha-key-box" type="text" placeholder="ReCaptcha Key">
-        </div>
-        <div class="field">
-          <div class="ui checkbox">
             <input id="user-vms-enabled-checkbox" type="checkbox">
             <label>User VMs Enabled</label>
           </div>
@@ -158,6 +147,31 @@
         <div class="field">
           <label>Unban IP Command</label>
           <input id="unban-ip-cmd-box" type="text" placeholder="Unban IP Command">
+        </div>
+        <div class="ui form segment">
+          <h4 class="ui dividing header">Captchas</h4>
+          <div class="field">
+            <div class="ui checkbox">
+              <input type="checkbox" id="captchas-enabled-checkbox">
+              <label>Enable Captchas</label>
+            </div>
+          </div>
+          <div class="field">
+            <label>Variables: </label>
+            $TOKEN - user&apos;s captcha token, $IP - user&apos;s IP address
+          </div>
+          <div class="field">
+            <label>Verification URL</label>
+            <input id="captcha-verification-box" type="text" placeholder="Verification URL">
+          </div>
+          <div class="field">
+            <label>HTTP POST Parameters</label>
+            <input id="captcha-post-parameters-box" type="text" placeholder="HTTP POST Parameters">
+          </div>
+          <div class="field">
+            <label>JSON success variable</label>
+            <input id="captcha-valid-json-variable-box" type="text" placeholder="JSON success variable">
+          </div>
         </div>
       </div>
     </div>

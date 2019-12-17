@@ -289,6 +289,7 @@ addMessageHandlers({
   onLoginFailed: (error) => {
     $("#login-button").removeClass("loading");
     $("#login-status").text(error);
+    showLoginForm();
   },
   onGuacInstr: (name, instr) => {
     collabVmTunnel.oninstruction(name, instr);
@@ -318,12 +319,6 @@ addMessageHandlers({
 });
 
 let twoFactorToken;
-
-$("#login-button").click(function() {
-  $("#login-status").text("");
-  getSocket().sendLoginRequest($("#username-box").val(), $("#password-box").val());
-  $(this).addClass("loading");
-});
 
 $("#register-button").click(function() {
   const usernameBox = $("#username-box");
@@ -391,27 +386,9 @@ $("#account-registration-checkbox").change(function() {
   getSocket().sendServerConfigModifications(config);
 });
 
-$("#recaptcha-enabled-checkbox").change(function() {
-  var config = window.serverConfig;
-  config.setRecaptchaEnabled(this.checked);
-  getSocket().sendServerConfigModifications(config);
-});
-
 $("#user-vms-enabled-checkbox").change(function() {
   var config = window.serverConfig;
   config.setUserVmsEnabled(this.checked);
-  getSocket().sendServerConfigModifications(config);
-});
-
-$("#recaptcha-twoFactorToken-box").change(function() {
-  var config = window.serverConfig;
-  config.setRecaptchaKey(this.value);
-  getSocket().sendServerConfigModifications(config);
-});
-
-$("#recaptcha-key-box").change(function() {
-  const config = window.serverConfig;
-  config.setRecaptchaKey(this.value);
   getSocket().sendServerConfigModifications(config);
 });
 
@@ -449,6 +426,26 @@ function showLoginForm() {
   $("#register-form").hide();
   $("#linked-servers").hide();
   $("#login-form").show();
+
+  if (RECAPTCHA_ENABLED) {
+    $("#login-button").hide();
+    grecaptcha.render(
+      $("<div>").appendTo($("#captcha").empty())[0],
+      {
+        sitekey: RECAPTCHA_SITE_KEY,
+        callback: token => {
+          $("#login-status").text("");
+          getSocket().sendLoginRequest($("#username-box").val(), $("#password-box").val(), token);
+          showLoading();
+        }
+      });
+  } else {
+    $("#login-button").off("click").click(function() {
+      $("#login-status").text("");
+      getSocket().sendLoginRequest($("#username-box").val(), $("#password-box").val());
+      $(this).addClass("loading");
+    });
+  }
 }
 
 function showRegisterForm() {
@@ -479,13 +476,9 @@ function showVms() {
   $("#view-vms").show();
   $("#linked-servers").hide();
   $("#server-config").hide();
-  $("#vm-settings .ui.form .close.button").click(() => $("#vm-settings").hide("slow"));
-  $("#vm-settings [name='name']").off("change").change(function() {
-    const config = window.serverConfig;
-    config.setBanIpCommand(this.value);
-    socket.sendServerConfigModifications(config);
-  });
 }
+
+$("#vm-settings .ui.form .close.button").click(() => $("#vm-settings").hide("slow"));
 
 function showLinkedServers() {
   $("#loading").hide();
@@ -515,11 +508,38 @@ function showServerConfig(config) {
 
   window.serverConfig = config.clone();
   $("#account-registration-checkbox").prop("checked", config.getAllowAccountRegistration());
-  $("#recaptcha-enabled-checkbox").prop("checked", config.getRecaptchaEnabled());
-  $("#recaptcha-key-box").val(config.getRecaptchaKey());
   $("#user-vms-enabled-checkbox").prop("checked", config.getUserVmsEnabled());
   $("#ban-ip-cmd-box").val(config.getBanIpCommand());
   $("#unban-ip-cmd-box").val(config.getUnbanIpCommand());
+
+  const captcha = config.getCaptcha();
+  $("#captchas-enabled-checkbox").prop("checked", captcha.enabled).off("change").change(function() {
+    const config = window.serverConfig;
+    config.setCaptcha(Object.assign(config.getCaptcha(), {enabled: this.checked}));
+    getSocket().sendServerConfigModifications(config);
+  });
+  $("#captcha-verification-box").val((captcha.https ? "https://" : "http://") + captcha.urlHost + (captcha.urlPort === 443 && captcha.https || captcha.urlPort === 80 && !captcha.https ? "" : ":" + captcha.urlPort) + captcha.urlPath).off("change").change(function() {
+    const config = window.serverConfig;
+    const url = new URL(this.value);
+    const https = url.protocol === "https:";
+    config.setCaptcha(Object.assign(config.getCaptcha(), {
+        https: https,
+        urlHost: url.hostname,
+        urlPort: url.port ? +url.port : [80, 443][+https],
+        urlPath: url.pathname + url.search + url.hash
+      }));
+    getSocket().sendServerConfigModifications(config);
+  });
+  $("#captcha-post-parameters-box").val(captcha.postParams).off("change").change(function() {
+    const config = window.serverConfig;
+    config.setCaptcha(Object.assign(config.getCaptcha(), {postParams: this.value}));
+    getSocket().sendServerConfigModifications(config);
+  });
+  $("#captcha-valid-json-variable-box").val(captcha.validJSONVariableName).off("change").change(function() {
+    const config = window.serverConfig;
+    config.setCaptcha(Object.assign(config.getCaptcha(), {validJSONVariableName: this.value}));
+    getSocket().sendServerConfigModifications(config);
+  });
 }
 //showServerConfig();
 function loadServerConfig() {

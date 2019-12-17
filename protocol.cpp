@@ -137,6 +137,58 @@ struct UserInviteWrapper {
         bool admin_;
 };
 
+struct CaptchaWrapper {
+        CaptchaWrapper() {}
+        CaptchaWrapper(ServerSetting::Captcha::Reader captcha) {
+          enabled_ = captcha.getEnabled();
+          https_ = captcha.getHttps();
+          urlHost_ = captcha.getUrlHost();
+          urlPort_ = captcha.getUrlPort();
+          urlPath_ = captcha.getUrlPath();
+          postParams_ = captcha.getPostParams();
+          validJSONVariableName_ = captcha.getValidJSONVariableName();
+        }
+
+        bool getEnabled() const { return enabled_; }
+        void setEnabled(bool&& enabled) { enabled_ = std::forward<bool>(enabled); }
+
+        bool getHttps() const { return https_; }
+        void setHttps(bool&& https) { https_ = std::forward<bool>(https); }
+
+        std::string getUrlHost() const { return urlHost_; }
+        void setUrlHost(std::string&& urlHost) { urlHost_ = std::forward<std::string>(urlHost); }
+
+        std::uint16_t getUrlPort() const { return urlPort_; }
+        void setUrlPort(std::uint16_t&& urlPort) { urlPort_ = std::forward<std::uint16_t>(urlPort); }
+
+        std::string getUrlPath() const { return urlPath_; }
+        void setUrlPath(std::string&& urlPath) { urlPath_ = std::forward<std::string>(urlPath); }
+
+        std::string getPostParams() const { return postParams_; }
+        void setPostParams(std::string&& postParams) { postParams_ = std::forward<std::string>(postParams); }
+
+        std::string getValidJSONVariableName() const { return validJSONVariableName_; }
+        void setValidJSONVariableName(std::string&& validJSONVariableName) { validJSONVariableName_ = std::forward<std::string>(validJSONVariableName); }
+
+        void serialize(ServerSetting::Captcha::Builder builder) {
+          builder.setEnabled(enabled_);
+          builder.setHttps(https_);
+          builder.setUrlHost(urlHost_);
+          builder.setUrlPort(urlPort_);
+          builder.setUrlPath(urlPath_);
+          builder.setPostParams(postParams_);
+          builder.setValidJSONVariableName(validJSONVariableName_);
+        }
+private:
+        bool enabled_;
+        bool https_;
+        std::string urlHost_;
+        std::uint16_t urlPort_;
+        std::string urlPath_;
+        std::string postParams_;
+        std::string validJSONVariableName_;
+};
+
 struct ServerSettingsWrapper {
     ServerSettingsWrapper(){}
     ServerSettingsWrapper(capnp::List<ServerSetting>::Reader settings) {
@@ -146,11 +198,8 @@ struct ServerSettingsWrapper {
             case ServerSetting::Setting::ALLOW_ACCOUNT_REGISTRATION:
                 allowAccountRegistration_ = setting.getAllowAccountRegistration();
                 break;
-            case ServerSetting::Setting::RECAPTCHA_ENABLED:
-                recaptchaEnabled_ = setting.getRecaptchaEnabled();
-                break;
-            case ServerSetting::Setting::RECAPTCHA_KEY:
-                recaptchaKey_ = setting.getRecaptchaKey();
+            case ServerSetting::Setting::CAPTCHA:
+                captcha_ = CaptchaWrapper(setting.getCaptcha());
                 break;
             case ServerSetting::Setting::USER_VMS_ENABLED:
                 userVmsEnabled_ = setting.getUserVmsEnabled();
@@ -178,11 +227,8 @@ struct ServerSettingsWrapper {
             case ServerSetting::Setting::ALLOW_ACCOUNT_REGISTRATION:
                                 setting.setAllowAccountRegistration(allowAccountRegistration_);
                 break;
-            case ServerSetting::Setting::RECAPTCHA_ENABLED:
-                                setting.setRecaptchaEnabled(recaptchaEnabled_);
-                break;
-            case ServerSetting::Setting::RECAPTCHA_KEY:
-                                setting.setRecaptchaKey(recaptchaKey_);
+            case ServerSetting::Setting::CAPTCHA:
+                                captcha_.serialize(setting.initCaptcha());
                 break;
             case ServerSetting::Setting::USER_VMS_ENABLED:
                                 setting.setUserVmsEnabled(userVmsEnabled_);
@@ -212,19 +258,12 @@ struct ServerSettingsWrapper {
         allowAccountRegistration_ = std::move(allowAccountRegistration);
         modified_settings_.emplace(ServerSetting::Setting::ALLOW_ACCOUNT_REGISTRATION);
     }
-    bool getRecaptchaEnabled() const {
-        return recaptchaEnabled_;
+    CaptchaWrapper getCaptcha() const {
+        return captcha_;
     }
-    void setRecaptchaEnabled(bool&& recaptchaEnabled) {
-        recaptchaEnabled_ = std::move(recaptchaEnabled);
-        modified_settings_.emplace(ServerSetting::Setting::RECAPTCHA_ENABLED);
-    }
-    std::string getRecaptchaKey() const {
-        return recaptchaKey_;
-    }
-    void setRecaptchaKey(std::string&& recaptchaKey) {
-        recaptchaKey_ = std::move(recaptchaKey);
-        modified_settings_.emplace(ServerSetting::Setting::RECAPTCHA_KEY);
+    void setCaptcha(CaptchaWrapper&& captcha) {
+        captcha_ = std::forward<CaptchaWrapper>(captcha);
+        modified_settings_.emplace(ServerSetting::Setting::CAPTCHA);
     }
     bool getUserVmsEnabled() const {
         return userVmsEnabled_;
@@ -256,6 +295,7 @@ struct ServerSettingsWrapper {
     }
     private:
         bool allowAccountRegistration_;
+        CaptchaWrapper captcha_;
         bool recaptchaEnabled_;
         std::string recaptchaKey_;
         bool userVmsEnabled_;
@@ -723,6 +763,9 @@ struct Deserializer {
             break;
             case CollabVmServerMessage::LoginResponse::LoginResult::INVALID_USERNAME:
             onLoginFailed("invalid username");
+            break;
+            case CollabVmServerMessage::LoginResponse::LoginResult::INVALID_CAPTCHA_TOKEN:
+            onLoginFailed("captcha verification failed");
             break;
           }
         break;
@@ -1316,12 +1359,13 @@ const auto byte_array = array.asBytes();
 		messageReady(message_builder);
   }
 
-	void sendLoginRequest(const std::string& username, const std::string& password) {
+	void sendLoginRequest(const std::string& username, const std::string& password, const std::string& captcha_token) {
 		capnp::MallocMessageBuilder message_builder;
 		auto message = message_builder.initRoot<CollabVmClientMessage::Message>();
 		auto loginRequest = message.initLoginRequest();
 		loginRequest.setUsername(username);
 		loginRequest.setPassword(password);
+		loginRequest.setCaptchaToken(captcha_token);
 		messageReady(message_builder);
 	}
 
@@ -1605,13 +1649,21 @@ emscripten::value_object<UserInviteWrapper>("UserInvite")
         .field("admin", &UserInviteWrapper::getAdmin, &UserInviteWrapper::setAdmin)
 ;
 
+emscripten::value_object<CaptchaWrapper>("Captcha")
+    .field("enabled", &CaptchaWrapper::getEnabled, &CaptchaWrapper::setEnabled)
+    .field("https", &CaptchaWrapper::getHttps, &CaptchaWrapper::setHttps)
+    .field("urlHost", &CaptchaWrapper::getUrlHost, &CaptchaWrapper::setUrlHost)
+    .field("urlPort", &CaptchaWrapper::getUrlPort, &CaptchaWrapper::setUrlPort)
+    .field("urlPath", &CaptchaWrapper::getUrlPath, &CaptchaWrapper::setUrlPath)
+    .field("postParams", &CaptchaWrapper::getPostParams, &CaptchaWrapper::setPostParams)
+    .field("validJSONVariableName", &CaptchaWrapper::getValidJSONVariableName, &CaptchaWrapper::setValidJSONVariableName)
+;
+
 emscripten::class_<ServerSettingsWrapper>("ServerSetting")
     .function("getAllowAccountRegistration", &ServerSettingsWrapper::getAllowAccountRegistration)
     .function("setAllowAccountRegistration", &ServerSettingsWrapper::setAllowAccountRegistration)
-    .function("getRecaptchaEnabled", &ServerSettingsWrapper::getRecaptchaEnabled)
-    .function("setRecaptchaEnabled", &ServerSettingsWrapper::setRecaptchaEnabled)
-    .function("getRecaptchaKey", &ServerSettingsWrapper::getRecaptchaKey)
-    .function("setRecaptchaKey", &ServerSettingsWrapper::setRecaptchaKey)
+    .function("getCaptcha", &ServerSettingsWrapper::getCaptcha)
+    .function("setCaptcha", &ServerSettingsWrapper::setCaptcha)
     .function("getUserVmsEnabled", &ServerSettingsWrapper::getUserVmsEnabled)
     .function("setUserVmsEnabled", &ServerSettingsWrapper::setUserVmsEnabled)
     .function("getAllowUserVmRequests", &ServerSettingsWrapper::getAllowUserVmRequests)

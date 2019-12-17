@@ -1,3 +1,5 @@
+const recaptchaEnabled = true;
+const recaptchaSiteKey = "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI";
 const publicPath = "/";
 const collabVmPath = "build/collab-vm-web-app/";
 // Gets the address of the WebSocket server
@@ -82,7 +84,8 @@ module.exports.config = {
 	plugins: [
 		new webpack.DefinePlugin({
 			WEBSOCKET_ADDRESS: "(" + getWebSocketAddress.toString() + ")()",
-      __DEV__: false
+      RECAPTCHA_ENABLED: recaptchaEnabled,
+      RECAPTCHA_SITE_KEY: '"' + recaptchaSiteKey + '"'
 		}),
     mainHtmlWebpackPlugin,
     adminHtmlWebpackPlugin
