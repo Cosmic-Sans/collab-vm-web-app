@@ -7,49 +7,32 @@ import "tabulator_semantic-ui.css";
 $(".ui.checkbox").checkbox();
 showLoading();
 
-const getInviteId = () => {
-  const inviteId =
-    window.location.hash.startsWith("#invite-")
-    ? atob(window.location.hash.substring("#invite-".length))
-    : "";
-  return Array.from({length: inviteId.length}, (_, i) => inviteId.charCodeAt(i)).toVector("UInt8Vector");
-};
-
 registerUrlRouter(path => {
+  const socket = getSocket();
+  socket.onSocketDisconnect = () => {
+    showLoading();
+  };
   if (path === "/admin") {
-    const socket = getSocket();
-    socket.onConnect = () => {};
-    if (window.location.hash === "#register") {
-      socket.onConnect = showRegisterForm;
-    } else if (window.location.hash.startsWith("#invite-")) {
-      socket.onConnect = () => {
-        getSocket().validateInvite(getInviteId());
-      };
-    } else {
-      socket.onConnect = () => {
-        // TODO: Try restoring the session
-        /*
-        const session = loadSessionInfo();
-        if (session.username && session.sessionId) {
+    socket.onSocketConnect = () => {
+      // TODO: Try restoring the session
+      /*
+      const session = loadSessionInfo();
+      if (session.username && session.sessionId) {
 
-        } else {
-          showLoginForm();
-        }
-        */
+      } else {
         showLoginForm();
-      };
-    }
+      }
+      */
+      showLoginForm();
+    };
     if (socket.connected) {
-      socket.onConnect();
+      socket.onSocketConnect();
     }
+  } else {
+    //hideEverything();
+    return false;
   }
 });
-
-Array.prototype.toVector = function(name) {
-  const vector = createObject(name);
-  this.forEach(element => vector.push_back(element));
-  return vector;
-}
 
 function showVmConfig(vmConfig) {
   const socket = getSocket();
@@ -308,24 +291,9 @@ addMessageHandlers({
     $("#user-invite-modal-link").attr("href", link).text(link);
     $("#user-invite-modal").modal("show");
   },
-  onInviteValidationResponse: (isValid, username) => {
-    if (isValid) {
-      showRegisterForm();
-      $("#username-box").val(username).prop("disabled", true);
-    } else {
-      console.error("Invalid invite");
-    }
-  }
 });
 
 let twoFactorToken;
-
-$("#register-button").click(function() {
-  const usernameBox = $("#username-box");
-  getSocket().sendAccountRegistrationRequest(usernameBox.prop("disabled") ? "" : usernameBox.val(),
-    $("#password-box").val(), twoFactorToken || "", getInviteId());
-  $(this).addClass("loading");
-});
 
 $("#validate-2fa-box").keypress(function(event) {
   if (event.which === 13) {

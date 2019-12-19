@@ -11,14 +11,15 @@
     <script defer src="https://use.fontawesome.com/releases/v5.0.9/js/all.js" integrity="sha384-8iPTk2s/jMVj81dnzb/iFR2sdA7u06vHJyyLlAd4snFpCl/SnyUjRrbdJsw1pGIl" crossorigin="anonymous"></script>
 </head>
 <body>
-  <div class="ui stackable menu">
+  <div class="ui stackable menu" id="menu">
       <div class="header item">CollabVM</div>
-      <a class="item" href=".">Home</a>
-      <a class="item" href="faq.html">FAQ</a>
-      <a class="item" href="news.html">News</a>
-      <a class="item" href="rules.html">Rules</a>
-      <a class="item" href="https://reddit.com/r/collabvm">Subreddit</a>
-      <a style="display: none" id="login-item" class="item">Login</a>
+      <a class="item" href="<%= __webpack_public_path__ %>">Home</a>
+      <a class="item" href="<%= __webpack_public_path__ + "faq" %>">FAQ</a>
+      <a class="item" href="<%= __webpack_public_path__ + "news" %>">News</a>
+      <a class="item" href="<%= __webpack_public_path__ + "rules" %>">Rules</a>
+      <a class="item" href="https://www.patreon.com/collabvm" target="_blank">Donate</a>
+      <a class="item" href="https://reddit.com/r/collabvm" target="_blank">Subreddit</a>
+      <a class="item" style="display: none" id="login-item" href="<%= __webpack_public_path__ + "login" %>">Login</a>
       <div class="right menu">
           <div class="item">
               <div class="ui compact multiple dropdown">
@@ -73,11 +74,29 @@
   <div id="loading" class="ui active dimmer inverted" style="position: fixed;">
     <div class="ui loader"></div>
   </div>
-  <%= require("html-loader!./home.html") %>
-  <%= require("html-loader!./faq.html") %>
-  <%= require("html-loader!./news.html") %>
-  <%= require("html-loader!./rules.html") %>
-  <%= require("html-loader!./donate.html") %>
+
+  <div id="vm-list">
+    <div class="ui centered cards link container" id="vm-container"></div>
+  </div>
+
   <%= require("html-loader!./view-vm.html") %>
+  <%= require("html-loader!./login-register.html") %>
+
+  <!-- div IDs must be "page-" + html filename -->
+  <div id="page-faq" class="container" style="display: none">
+    <%= require("html-loader!./faq.html") %>
+  </div>
+  <div id="page-news" class="container" style="display: none">
+    <%= require("html-loader!./news.html") %>
+  </div>
+  <div id="page-rules" class="container" style="display: none">
+    <%= require("html-loader!./rules.html") %>
+  </div>
+  <div id="page-donate" class="container" style="display: none">
+    <%= require("html-loader!./donate.html") %>
+  </div>
+  <div id="page-not-found" class="container" style="display: none">
+    <%= require("html-loader!./not-found.html") %>
+  </div>
 </body>
 </html>

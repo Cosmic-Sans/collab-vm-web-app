@@ -1,24 +1,108 @@
-import {registerUrlRouter, setUrl, getSocket, addMessageHandlers, saveSessionInfo, loadSessionInfo} from "common";
+import {registerUrlRouter, setUrl, getPath, getSocket, addMessageHandlers, saveSessionInfo, loadSessionInfo} from "common";
 import $ from "jquery";
 import Guacamole from "Guacamole";
 import {fromByteArray as ipFromByteArray} from "ipaddr.js";
 
+let currentVmId = null;
 let hasTurn = false;
 let username = null;
 let turnInterval = null;
 
 registerUrlRouter(path => {
-  if (path === "/") {
+  const socket = getSocket();
+  socket.onSocketDisconnect = () => {
+    $("#chat-user").text(username = "");
+    currentVmId = null;
+    showLoading();
+  };
+  addMessageHandlers({
+    onVmInfo: () => {}
+  });
+  if (path === "") {
+    addMessageHandlers({
+      onVmInfo: vmInfo => {
+        displayVmList(
+          Array.from({length: vmInfo.size()}, (_, i) => vmInfo.get(i)));
+      }
+    });
     viewServerList();
-  } else if (path.startsWith("/view/")) {
-    const vmId = path.substr("/view/".length);
-    viewVm(+vmId);
+  } else if (path.startsWith("/vm/")) {
+    const vmId = +path.substr("/vm/".length);
+    socket.onSocketConnect = () => {
+      if (currentVmId === vmId) {
+        viewVm();
+        return;
+      }
+      currentVmId = vmId;
+      getSocket().sendConnectRequest(vmId);
+    };
+  } else if (path === "/login") {
+    socket.onSocketConnect = showLoginForm;
+  } else if (path === "/register") {
+    socket.onSocketConnect = showRegisterForm;
+  } else if (path.startsWith("/invite/")) {
+    socket.onSocketConnect = () => {
+      getSocket().validateInvite(getInviteId());
+    };
+  } else {
+    hideEverything();
+    return false;
+  }
+  if (socket.onSocketConnect && socket.connected) {
+    socket.onSocketConnect();
   }
 });
 
-function viewVm(vmId) {
-  const socket = getSocket();
-  socket.sendConnectRequest(vmId);
+function showLoading() {
+  hideEverything();
+  $("#loading").show();
+}
+
+function showLoginForm() {
+  hideEverything();
+  $("#login-register-container, #login-form").show();
+
+  if (RECAPTCHA_ENABLED) {
+    $("#login-button").hide();
+    grecaptcha.render(
+      $("<div>").appendTo($("#captcha").empty())[0],
+      {
+        sitekey: RECAPTCHA_SITE_KEY,
+        callback: token => {
+          $("#login-status").text("");
+          getSocket().sendLoginRequest($("#username-box").val(), $("#password-box").val(), token);
+          showLoading();
+        }
+      });
+  } else {
+    $("#login-button").off("click").click(function() {
+      $("#login-status").text("");
+      getSocket().sendLoginRequest($("#username-box").val(), $("#password-box").val());
+      $(this).addClass("loading");
+    });
+  }
+}
+
+const getInviteId = () => {
+  const path = getPath();
+  const inviteId =
+    path.startsWith("/invite/")
+    ? atob(path.substring("/invite/".length))
+    : "";
+  return Array.from({length: inviteId.length}, (_, i) => inviteId.charCodeAt(i)).toVector("UInt8Vector");
+};
+
+function showRegisterForm() {
+  hideEverything();
+  $("#login-register-container, #register-form").show();
+
+  $("#register-button").off("click").click(function() {
+    const usernameBox = $("#username-box");
+    const twoFactorToken = "";
+    getSocket().sendAccountRegistrationRequest(usernameBox.prop("disabled") ? "" : usernameBox.val(),
+      $("#password-box").val(), twoFactorToken || "", getInviteId());
+    $(this).addClass("loading");
+  });
 }
 
 const CollabVmTunnel = function() {
@@ -105,23 +189,25 @@ $("#chat-send-btn").click(function() {
   var chat = $("#chat-input");
   var msg = chat.val().trim();
   if (guacClient.currentState === Guacamole.Client.CONNECTED && msg) {
-    getSocket().sendChatMessage(0, msg);
+    getSocket().sendChatMessage(currentVmId, msg);
     chat.val("");
   }
 });
 $("#end-turn-btn").click(() => getSocket().endTurn());
 $("#pause-turns-btn").click(() => getSocket().pauseTurnTimer());
 $("#resume-turns-btn").click(() => getSocket().resumeTurnTimer());
-$("#login-item").show().click(() => {
-  $("#login-modal").modal({
-    closable: true,
-  }).modal("show");
-});
+$("#login-item").show();
 $("#login-btn").click(() => {
   $("#login-status").text("");
   $("#login-btn").addClass("loading");
   getSocket().sendLoginRequest($("#username-box").val(), $("#password-box").val());
 });
+
+const updateSession = (sessionId, newUsername) => {
+  username = newUsername;
+  $("#chat-user").text(username);
+  saveSessionInfo(sessionId, username);
+};
 
 collabVmTunnel.onstatechange = function(state) {
   if (state == Guacamole.Tunnel.State.CLOSED) {
@@ -188,7 +274,7 @@ const displayVmList = vms => {
     }
     vm.element = vm.$element[0];
     vm.element.addEventListener("click", () => {
-      setUrl("/view/" + vm.id);
+      setUrl("/vm/" + vm.id);
     });
     vmContainer.append(vm.$element);
   });
@@ -241,6 +327,8 @@ const displayVmList = vms => {
     makeTriStateCheckbox($checkbox, {
       onChange: onFilterChanged
     }));
+  hideEverything();
+  $("#vm-list").show();
 }
 function copyToClipboard(text) {
     const input = document.createElement("input");
@@ -275,7 +363,7 @@ const addUsers = (users, ipAddresses) =>
         </div>
       </div>
     </div>`).dropdown({
-			action: "nothing",
+      action: "hide",
       onChange: value => {
         switch (value) {
           case "captcha":
@@ -338,163 +426,180 @@ const getIpAddress = byteVector => {
 		};
 };
 
+const hideEverything = () => {
+  $("#loading, #not-found, #vm-view, #vm-list, #login-register-container, #register-form, #login-form").hide();
+};
 const viewServerList = () => {
+  showLoading();
   const socket = getSocket();
-  if (socket.connected) {
+  socket.onSocketConnect = () => {
     socket.sendVmListRequest();
-  } else {
-    socket.onConnect = () => {
-      socket.sendVmListRequest();
-    };
-  }
-  addMessageHandlers({
-    onConnect: newUsername => {
-      if (newUsername) {
-        username = newUsername;
-      }
-      guacClient.connect();
-      $("#vm-view").show();
-      $("#vm-list").hide();
-			$("#chat-input, #chat-send-btn").prop("disabled", false);
-    },
-    onDisconnect: () => {
-      $("#chat-user").hide();
-    },
-    onVmDescription: description =>
-      $("#vm-description").text(description),
-    onVmTurnInfo: (usersWaitingVector, timeRemaining, isPaused) => {
-      const usersWaiting = Array.from({length: usersWaitingVector.size()}, (_, i) => usersWaitingVector.get(i))
-      if (usersWaiting[0] === username) {
-        // The user has control
-        hasTurn = true;
-        display.className = "focused";
-        if (turnInterval !== null)
-          clearInterval(turnInterval);
-        // Round the turn time up to the nearest second
-        if (isPaused) {
-          $("#status").html("Paused");
-          return;
-        }
-        turnInterval = waitingTimer(function(seconds) {
-            if (seconds !== null) {
-              $("#status").html(`Your turn expires in ~${seconds} second${seconds === 1 ? "" : "s"}`);
-            } else {
-              turnInterval = null;
-              $("#status").html("");
-            }
-          }, Math.round(timeRemaining/1000)*1000);
-      } else if (usersWaiting.includes(username)) {
-        // The user is waiting for control
-        hasTurn = false;
-        display.className = "waiting";
-        if (turnInterval !== null)
-          clearInterval(turnInterval);
-        if (isPaused) {
-          $("#status").html("Paused");
-          return;
-        }
-        turnInterval = waitingTimer(function(seconds, dots) {
-            if (seconds !== null) {
-              $("#status").html(`Waiting for turn in ~${seconds} second${seconds === 1 ? "" : "s"}` + dots);
-            } else {
-              turnInterval = null;
-              $("#status").html("");
-            }
-          }, Math.round(parseInt(parameters[parameters.length-1])/1000)*1000);
-      } else {
-        if (hasTurn) {
-          hasTurn = false;
-          display.className = "";
-        }
-        if (turnInterval !== null) {
-          clearInterval(turnInterval);
-          turnInterval = null;
-          $("#status").html("");
-        }
-      }
-    },
-    onChatMessage: (channelId, username, message, timestamp) => {
-      const chatPanel = $("#chat-panel").get(0);
-      const atBottom = chatPanel.offsetHeight + chatPanel.scrollTop >= chatPanel.scrollHeight;
-      var chatElement = $('<li><div></div></li>');
-      if (username) {
-        chatElement.children().first().html(message).prepend($('<span class="username"></span>').text(username), '<span class="spacer">\u25B8</span>');
-      } else {
-        chatElement.children().first().addClass("server-message").html(message);
-      }
-
-      const timestampElement = $('<span class="chat-timestamp"></span>');
-      timestampElement[0].dataset.secondsTimestamp = timestamp;
-      setChatTimestampText(timestampElement[0]);
-      chatElement.children().first().append(timestampElement);
-
-      var chatBox = $("#chat-box");
-      var children = chatBox.children();
-      const maxChatMsgHistory = 100;
-      if (children.length >= maxChatMsgHistory)
-        children.first().remove();
-      chatBox.append(chatElement);
-      if (atBottom) {
-        chatPanel.scrollTop = chatPanel.scrollHeight;
-      }
-    },
-    onUserList: (channelId, usernamesVector) => {
-      const usernames = Array.from({length: usernamesVector.size()}, (_, i) => usernamesVector.get(i))
-      addUsers(usernames);
-    },
-    onUserListAdd: (channelId, username) => {
-      addUsers([username]);
-    },
-    onUserListRemove: (channelId, username) => {
-      $("#online-users > *").filter((i, user) => user.innerText === username).remove();
-    },
-    onAdminUserList: (channelId, usernamesVector, ipAddressesVector) => {
-      const usernames = Array.from({length: usernamesVector.size()}, (_, i) => usernamesVector.get(i));
-      const ipAddresses = Array.from({length: ipAddressesVector.size()}, (_, i) => getIpAddress(ipAddressesVector.get(i)));
-      addUsers(usernames, ipAddresses);
-    },
-    onAdminUserListAdd: (channelId, username, ipAddress) => {
-      addUsers([username], [getIpAddress(ipAddress)]);
-    },
-    onVmInfo: vmInfo => {
-      displayVmList(
-        Array.from({length: vmInfo.size()}, (_, i) => vmInfo.get(i)));
-      $("#loading").hide();
-    },
-    onVmThumbnail: (vmId, thumbnail) => {
-      const imageBlob = new Blob([thumbnail], {type: "image/png"});
-      const imageUrl = URL.createObjectURL(imageBlob);
-      const image = new Image();
-      image.src = imageUrl;
-      image.onload = image.onerror = () => URL.revokeObjectURL(imageUrl);
-      $(`#vm-container > [data-id='${vmId}'] .image`).empty().append(image);
-    },
-    onServerConfig: config => {
-      showServerConfig(config);
-    },
-    onRegisterAccountSucceeded: (sessionId, username) => {
-      saveSessionInfo(sessionId, username);
-    },
-    onRegisterAccountFailed: error => {
-      console.error(error);
-    },
-    onLoginSucceeded: (sessionId, username) => {
-      $("#login-modal").modal("hide");
-      $("#login-btn").removeClass("loading");
-      saveSessionInfo(sessionId, username);
-      $("#chat-user").text(username).show();
-    },
-    onLoginFailed: error => {
-      $("#login-btn").removeClass("loading");
-      $("#login-status").text(error);
-    },
-    onGuacInstr: (name, instr) =>
-      collabVmTunnel.oninstruction(name, instr)
-  });
-
+  };
   $($filterCheckboxes.map($checkbox =>
     $checkbox[0])).checkbox(
       "set indeterminate", );
 
   $('.ui.dropdown').dropdown({action:"nothing"});
 };
+
+function viewVm() {
+  hideEverything();
+  $("#vm-view").show();
+  $("#chat-input, #chat-send-btn").prop("disabled", false);
+}
+
+const goBackOrHome = () => {
+  if (window.history.state) {
+    window.history.back();
+  } else {
+    setUrl("/");
+  }
+};
+
+addMessageHandlers({
+  onConnect: newUsername => {
+    if (newUsername) {
+      updateSession("", newUsername);
+    }
+    guacClient.connect();
+    viewVm();
+  },
+  onVmDescription: description =>
+    $("#vm-description").text(description),
+  onVmTurnInfo: (usersWaitingVector, timeRemaining, isPaused) => {
+    const usersWaiting = Array.from({length: usersWaitingVector.size()}, (_, i) => usersWaitingVector.get(i))
+    if (usersWaiting[0] === username) {
+      // The user has control
+      hasTurn = true;
+      display.className = "focused";
+      if (turnInterval !== null)
+        clearInterval(turnInterval);
+      // Round the turn time up to the nearest second
+      if (isPaused) {
+        $("#status").html("Paused");
+        return;
+      }
+      turnInterval = waitingTimer(function(seconds) {
+          if (seconds !== null) {
+            $("#status").html(`Your turn expires in ~${seconds} second${seconds === 1 ? "" : "s"}`);
+          } else {
+            turnInterval = null;
+            $("#status").html("");
+          }
+        }, Math.round(timeRemaining/1000)*1000);
+    } else if (usersWaiting.includes(username)) {
+      // The user is waiting for control
+      hasTurn = false;
+      display.className = "waiting";
+      if (turnInterval !== null)
+        clearInterval(turnInterval);
+      if (isPaused) {
+        $("#status").html("Paused");
+        return;
+      }
+      turnInterval = waitingTimer(function(seconds, dots) {
+          if (seconds !== null) {
+            $("#status").html(`Waiting for turn in ~${seconds} second${seconds === 1 ? "" : "s"}` + dots);
+          } else {
+            turnInterval = null;
+            $("#status").html("");
+          }
+        }, Math.round(parseInt(parameters[parameters.length-1])/1000)*1000);
+    } else {
+      if (hasTurn) {
+        hasTurn = false;
+        display.className = "";
+      }
+      if (turnInterval !== null) {
+        clearInterval(turnInterval);
+        turnInterval = null;
+        $("#status").html("");
+      }
+    }
+  },
+  onChatMessage: (channelId, username, message, timestamp) => {
+    const chatPanel = $("#chat-panel").get(0);
+    const atBottom = chatPanel.offsetHeight + chatPanel.scrollTop >= chatPanel.scrollHeight;
+    var chatElement = $('<li><div></div></li>');
+    if (username) {
+      chatElement.children().first().html(message).prepend($('<span class="username"></span>').text(username), '<span class="spacer">\u25B8</span>');
+    } else {
+      chatElement.children().first().addClass("server-message").html(message);
+    }
+
+    const timestampElement = $('<span class="chat-timestamp"></span>');
+    timestampElement[0].dataset.secondsTimestamp = timestamp;
+    setChatTimestampText(timestampElement[0]);
+    chatElement.children().first().append(timestampElement);
+
+    var chatBox = $("#chat-box");
+    var children = chatBox.children();
+    const maxChatMsgHistory = 100;
+    if (children.length >= maxChatMsgHistory)
+      children.first().remove();
+    chatBox.append(chatElement);
+    if (atBottom) {
+      chatPanel.scrollTop = chatPanel.scrollHeight;
+    }
+  },
+  onUserList: (channelId, usernamesVector) => {
+    $("#online-users > *").empty();
+    const usernames = Array.from({length: usernamesVector.size()}, (_, i) => usernamesVector.get(i))
+    addUsers(usernames);
+  },
+  onUserListAdd: (channelId, username) => {
+    addUsers([username]);
+  },
+  onUserListRemove: (channelId, username) => {
+    const userList = $("#online-users");
+    userList.children().filter((i, user) => user.innerText === username).remove();
+    $("#online-users-count").text(userList.children().length);
+  },
+  onAdminUserList: (channelId, usernamesVector, ipAddressesVector) => {
+    $("#online-users > *").empty();
+    const usernames = Array.from({length: usernamesVector.size()}, (_, i) => usernamesVector.get(i));
+    const ipAddresses = Array.from({length: ipAddressesVector.size()}, (_, i) => getIpAddress(ipAddressesVector.get(i)));
+    addUsers(usernames, ipAddresses);
+  },
+  onAdminUserListAdd: (channelId, username, ipAddress) => {
+    addUsers([username], [getIpAddress(ipAddress)]);
+  },
+  onVmThumbnail: (vmId, thumbnail) => {
+    const imageBlob = new Blob([thumbnail], {type: "image/png"});
+    const imageUrl = URL.createObjectURL(imageBlob);
+    const image = new Image();
+    image.src = imageUrl;
+    image.onload = image.onerror = () => URL.revokeObjectURL(imageUrl);
+    $(`#vm-container > [data-id='${vmId}'] .image`).empty().append(image);
+  },
+  onServerConfig: config => {
+    showServerConfig(config);
+  },
+  onRegisterAccountSucceeded: (sessionId, username) => {
+    updateSession(sessionId, username);
+    goBackOrHome();
+  },
+  onRegisterAccountFailed: error => {
+    console.error(error);
+  },
+  onLoginSucceeded: (sessionId, username) => {
+    $("#login-btn").removeClass("loading");
+    updateSession(sessionId, username);
+    goBackOrHome();
+  },
+  onLoginFailed: error => {
+    showLoginForm();
+    $("#login-btn").removeClass("loading");
+    $("#login-status").text(error);
+  },
+  onGuacInstr: (name, instr) =>
+    collabVmTunnel.oninstruction(name, instr),
+  onInviteValidationResponse: (isValid, username) => {
+    if (isValid) {
+      showRegisterForm();
+      $("#username-box").val(username).prop("disabled", true);
+    } else {
+      console.error("Invalid invite");
+    }
+  }
+});
