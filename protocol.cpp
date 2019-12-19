@@ -842,6 +842,12 @@ struct Deserializer {
           onUserListAdd(added_user.getChannel(), added_user.getUsername());
           break;
         }
+        case CollabVmServerMessage::Message::USER_LIST_REMOVE:
+        {
+          const auto removed_user = message.getUserListRemove();
+          onUserListRemove(removed_user.getChannel(), removed_user.getUsername());
+          break;
+        }
         case CollabVmServerMessage::Message::ADMIN_USER_LIST_ADD:
         {
           const auto update = message.getAdminUserListAdd();
@@ -855,6 +861,7 @@ struct Deserializer {
           auto usernames = to_vector<std::string>(user_list.getUsers(), [](auto user){ return user.getUsername(); });
           onUserList(user_list.getChannel(), std::move(usernames));
         }
+        break;
         case CollabVmServerMessage::Message::ADMIN_USER_LIST:
         {
           const auto user_list = message.getAdminUserList();
