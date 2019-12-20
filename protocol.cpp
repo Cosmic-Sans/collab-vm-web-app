@@ -1376,7 +1376,7 @@ const auto byte_array = array.asBytes();
 		messageReady(message_builder);
 	}
 
-	void sendAccountRegistrationRequest(const std::string& username, const std::string& password, const std::string& two_factor_token, const std::vector<std::uint8_t>& invite_id) {
+	void sendAccountRegistrationRequest(const std::string& username, const std::string& password, const std::string& two_factor_token, const std::vector<std::uint8_t>& invite_id, const std::string& captcha_token) {
 		capnp::MallocMessageBuilder message_builder;
 		auto message = message_builder.initRoot<CollabVmClientMessage::Message>();
 		auto registration_request = message.initAccountRegistrationRequest();

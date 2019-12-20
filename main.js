@@ -69,14 +69,14 @@ function showLoginForm() {
       {
         sitekey: RECAPTCHA_SITE_KEY,
         callback: token => {
-          $("#login-status").text("");
+          $("#login-register-status").text("").removeClass("visible");
           getSocket().sendLoginRequest($("#username-box").val(), $("#password-box").val(), token);
           showLoading();
         }
       });
   } else {
     $("#login-button").off("click").click(function() {
-      $("#login-status").text("");
+      $("#login-register-status").text("").removeClass("visible");
       getSocket().sendLoginRequest($("#username-box").val(), $("#password-box").val());
       $(this).addClass("loading");
     });
@@ -95,14 +95,32 @@ const getInviteId = () => {
 function showRegisterForm() {
   hideEverything();
   $("#login-register-container, #register-form").show();
+  const twoFactorToken = "";
 
-  $("#register-button").off("click").click(function() {
-    const usernameBox = $("#username-box");
-    const twoFactorToken = "";
-    getSocket().sendAccountRegistrationRequest(usernameBox.prop("disabled") ? "" : usernameBox.val(),
-      $("#password-box").val(), twoFactorToken || "", getInviteId());
-    $(this).addClass("loading");
-  });
+  const hasInvite = $("#username-box").prop("disabled");
+  if (!hasInvite && RECAPTCHA_ENABLED) {
+    $("#register-button").hide();
+    grecaptcha.render(
+      $("<div>").appendTo($("#captcha").empty())[0],
+      {
+        sitekey: RECAPTCHA_SITE_KEY,
+        callback: token => {
+          const usernameBox = $("#username-box");
+          $("#login-register-status").text("").removeClass("visible");
+          getSocket().sendAccountRegistrationRequest(usernameBox.prop("disabled") ? "" : usernameBox.val(),
+            $("#password-box").val(), twoFactorToken || "", getInviteId(), token);
+          showLoading();
+        }
+      });
+  } else {
+    $("#register-button").off("click").click(function() {
+      const usernameBox = $("#username-box");
+      $("#login-register-status").text("").removeClass("visible");
+      getSocket().sendAccountRegistrationRequest(usernameBox.prop("disabled") ? "" : usernameBox.val(),
+        $("#password-box").val(), twoFactorToken || "", getInviteId(), "");
+      $(this).addClass("loading");
+    });
+  }
 }
 
 const CollabVmTunnel = function() {
@@ -197,11 +215,6 @@ $("#end-turn-btn").click(() => getSocket().endTurn());
 $("#pause-turns-btn").click(() => getSocket().pauseTurnTimer());
 $("#resume-turns-btn").click(() => getSocket().resumeTurnTimer());
 $("#login-item").show();
-$("#login-btn").click(() => {
-  $("#login-status").text("");
-  $("#login-btn").addClass("loading");
-  getSocket().sendLoginRequest($("#username-box").val(), $("#password-box").val());
-});
 
 const updateSession = (sessionId, newUsername) => {
   username = newUsername;
@@ -580,7 +593,9 @@ addMessageHandlers({
     goBackOrHome();
   },
   onRegisterAccountFailed: error => {
-    console.error(error);
+    showRegisterForm();
+    $("#login-btn").removeClass("loading");
+    $("#login-register-status").text(error).addClass("visible");
   },
   onLoginSucceeded: (sessionId, username) => {
     $("#login-btn").removeClass("loading");
@@ -590,7 +605,7 @@ addMessageHandlers({
   onLoginFailed: error => {
     showLoginForm();
     $("#login-btn").removeClass("loading");
-    $("#login-status").text(error);
+    $("#login-register-status").text(error).addClass("visible");
   },
   onGuacInstr: (name, instr) =>
     collabVmTunnel.oninstruction(name, instr),
