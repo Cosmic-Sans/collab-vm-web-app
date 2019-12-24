@@ -108,6 +108,13 @@ function showVmConfig(vmConfig) {
       socket.sendVmSettings(currentVmId, vmSettings);
     });
 
+  $("#vm-settings :text[name='restart-command']").val(vmConfig.getRestartCommand()).off("change")
+    .change(function() {
+      const vmSettings = createObject("VmSettings");
+      vmSettings.setRestartCommand(this.value);
+      socket.sendVmSettings(currentVmId, vmSettings);
+    });
+
   initCheckbox($("#vm-settings :checkbox[name='turns-enabled']"),
     vmConfig.getTurnsEnabled(), function() {
         const vmSettings = createObject("VmSettings");
@@ -119,6 +126,27 @@ function showVmConfig(vmConfig) {
     .change(function() {
       const vmSettings = createObject("VmSettings");
       vmSettings.setTurnTime(+this.value);
+      socket.sendVmSettings(currentVmId, vmSettings);
+    });
+
+  initCheckbox($("#vm-settings :checkbox[name='votes-enabled']"),
+    vmConfig.getVotesEnabled(), function() {
+        const vmSettings = createObject("VmSettings");
+        vmSettings.setVotesEnabled(this.checked);
+        socket.sendVmSettings(currentVmId, vmSettings);
+      });
+
+  $("#vm-settings :input[name='vote-time']").val(vmConfig.getVoteTime()).off("change")
+    .change(function() {
+      const vmSettings = createObject("VmSettings");
+      vmSettings.setVoteTime(+this.value);
+      socket.sendVmSettings(currentVmId, vmSettings);
+    });
+
+  $("#vm-settings :input[name='vote-cooldown-time']").val(vmConfig.getVoteCooldownTime()).off("change")
+    .change(function() {
+      const vmSettings = createObject("VmSettings");
+      vmSettings.setVoteCooldownTime(+this.value);
       socket.sendVmSettings(currentVmId, vmSettings);
     });
 

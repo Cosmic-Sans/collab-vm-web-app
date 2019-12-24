@@ -268,6 +268,11 @@
             <input type="text" name="stop-command" placeholder="Stop Command">
           </div>
 
+          <div class="field">
+            <label>Restart Command</label>
+            <input type="text" name="restart-command" placeholder="Restart Command">
+          </div>
+
           <div class="inline fields">
             <div class="six wide field">
               <div class="ui checkbox">
@@ -287,6 +292,36 @@
             </div>
           </div>
 
+            <div class="four wide field">
+              <div class="ui checkbox">
+                <input type="checkbox" name="votes-enabled">
+                <label>Votes Enabled</label>
+              </div>
+            </div>
+
+          <div class="inline fields">
+            <div class="eight wide field">
+              <label>Vote Time</label>
+              <div class="ui right labeled input">
+                <input type="number" name="vote-time">
+                <div class="ui basic label">
+                  seconds
+                </div>
+              </div>
+            </div>
+
+            <div class="eight wide field">
+              <label>Vote Cooldown Time</label>
+              <div class="ui right labeled input">
+                <input type="number" name="vote-cooldown-time">
+                <div class="ui basic label">
+                  seconds
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!--
           <div class="fields">
             <div class="four wide field">
               <div class="ui checkbox">
@@ -309,9 +344,9 @@
               <label>Max Upload Size</label>
               <div class="ui action input">
                 <input type="number" name="max-upload-size">
-                <!-- Semantic sets the width of this dropdown to 100%
+          --><!-- Semantic sets the width of this dropdown to 100%
                      because it is inside of a form so change it back.  -->
-                <select class="ui compact selection dropdown" style="width: initial">
+                <!-- <select class="ui compact selection dropdown" style="width: initial">
                   <option value="0">bytes</option>
                   <option value="1">KiB</option>
                   <option selected="" value="2">MiB</option>
@@ -320,6 +355,7 @@
               </div> 
             </div>
           </div>
+          -->
 
 					<div class="field">
 						<label>Protocol</label>

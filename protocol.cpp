@@ -571,10 +571,10 @@ struct VmSettingsWrapper {
         turnsEnabled_ = std::move(turnsEnabled);
         modified_settings_.emplace(VmSetting::Setting::TURNS_ENABLED);
     }
-    std::uint8_t getTurnTime() const {
+    std::uint16_t getTurnTime() const {
         return turnTime_;
     }
-    void setTurnTime(std::uint8_t&& turnTime) {
+    void setTurnTime(std::uint16_t&& turnTime) {
         turnTime_ = std::move(turnTime);
         modified_settings_.emplace(VmSetting::Setting::TURN_TIME);
     }
@@ -585,10 +585,10 @@ struct VmSettingsWrapper {
         uploadsEnabled_ = std::move(uploadsEnabled);
         modified_settings_.emplace(VmSetting::Setting::UPLOADS_ENABLED);
     }
-    std::uint8_t getUploadCooldownTime() const {
+    std::uint16_t getUploadCooldownTime() const {
         return uploadCooldownTime_;
     }
-    void setUploadCooldownTime(std::uint8_t&& uploadCooldownTime) {
+    void setUploadCooldownTime(std::uint16_t&& uploadCooldownTime) {
         uploadCooldownTime_ = std::move(uploadCooldownTime);
         modified_settings_.emplace(VmSetting::Setting::UPLOAD_COOLDOWN_TIME);
     }
@@ -606,17 +606,17 @@ struct VmSettingsWrapper {
         votesEnabled_ = std::move(votesEnabled);
         modified_settings_.emplace(VmSetting::Setting::VOTES_ENABLED);
     }
-    std::uint8_t getVoteTime() const {
+    std::uint16_t getVoteTime() const {
         return voteTime_;
     }
-    void setVoteTime(std::uint8_t&& voteTime) {
+    void setVoteTime(std::uint16_t&& voteTime) {
         voteTime_ = std::move(voteTime);
         modified_settings_.emplace(VmSetting::Setting::VOTE_TIME);
     }
-    std::uint8_t getVoteCooldownTime() const {
+    std::uint16_t getVoteCooldownTime() const {
         return voteCooldownTime_;
     }
-    void setVoteCooldownTime(std::uint8_t&& voteCooldownTime) {
+    void setVoteCooldownTime(std::uint16_t&& voteCooldownTime) {
         voteCooldownTime_ = std::move(voteCooldownTime);
         modified_settings_.emplace(VmSetting::Setting::VOTE_COOLDOWN_TIME);
     }
@@ -659,13 +659,13 @@ struct VmSettingsWrapper {
         std::string stopCommand_;
         std::string restartCommand_;
         bool turnsEnabled_;
-        std::uint8_t turnTime_;
+        std::uint16_t turnTime_;
         bool uploadsEnabled_;
-        std::uint8_t uploadCooldownTime_;
+        std::uint16_t uploadCooldownTime_;
         std::uint32_t maxUploadSize_;
         bool votesEnabled_;
-        std::uint8_t voteTime_;
-        std::uint8_t voteCooldownTime_;
+        std::uint16_t voteTime_;
+        std::uint16_t voteCooldownTime_;
         std::uint16_t protocol_;
         std::string address_;
         std::uint16_t socket_type_;
@@ -907,6 +907,25 @@ struct Deserializer {
         {
           const auto required = message.getCaptchaRequired();
           onCaptchaRequired(required);
+          break;
+        }
+        case CollabVmServerMessage::Message::VOTE_STATUS:
+        {
+          const auto vote_status = message.getVoteStatus().getStatus();
+          if (vote_status.which() == VoteStatus::Status::DISABLED) {
+            onVotesDisabled();
+          } else if (vote_status.which() == VoteStatus::Status::ENABLED) {
+            const auto vote_info = vote_status.getEnabled();
+            onVoteStatus(vote_info.getTimeRemaining(),
+                         vote_info.getYesVoteCount(),
+                         vote_info.getNoVoteCount());
+          }
+          break;
+        }
+        case CollabVmServerMessage::Message::VOTE_RESULT:
+        {
+          const auto vote_passed = message.getVoteResult();
+          onVoteResult(vote_passed);
           break;
         }
       }
@@ -1247,6 +1266,9 @@ struct Deserializer {
   virtual void onCreateInviteResult(std::vector<std::uint8_t>&& id) = 0;
   virtual void onInviteValidationResponse(bool is_valid, std::string&& username) = 0;
 	virtual void onCaptchaRequired(bool required) = 0;
+	virtual void onVotesDisabled() = 0;
+	virtual void onVoteStatus(std::uint32_t time_remaining, std::uint32_t yes_vote_count, std::uint32_t no_vote_count) = 0;
+	virtual void onVoteResult(bool vote_passed) = 0;
 
   virtual ~Deserializer() = default;
 };
@@ -1332,6 +1354,15 @@ struct DeserializerWrapper : public emscripten::wrapper<Deserializer> {
   virtual void onCaptchaRequired(bool required) {
     return call<void>("onCaptchaRequired", required);
   }
+	virtual void onVotesDisabled() {
+    return call<void>("onVotesDisabled");
+  }
+	virtual void onVoteStatus(std::uint32_t time_remaining, std::uint32_t yes_vote_count, std::uint32_t no_vote_count) {
+    return call<void>("onVoteStatus", time_remaining, yes_vote_count, no_vote_count);
+  }
+  virtual void onVoteResult(bool vote_passed) {
+    return call<void>("onVoteResult", vote_passed);
+  }
 };
 
 struct Serializer {
@@ -1413,6 +1444,13 @@ const auto byte_array = array.asBytes();
       registration_request.setInviteId(kj::ArrayPtr<const std::uint8_t>(invite_id.data(), invite_id.size()));
     }
     registration_request.setCaptchaToken(captcha_token);
+		messageReady(message_builder);
+	}
+
+	void sendCaptchaCompleted(const std::string& captcha_token) {
+		capnp::MallocMessageBuilder message_builder;
+		auto message = message_builder.initRoot<CollabVmClientMessage::Message>();
+		message.setCaptchaCompleted(captcha_token);
 		messageReady(message_builder);
 	}
 
@@ -1556,10 +1594,25 @@ const auto byte_array = array.asBytes();
 		messageReady(message_builder);
   }
 
+  void sendVote(bool voted_yes) {
+		capnp::MallocMessageBuilder message_builder;
+		message_builder.initRoot<CollabVmClientMessage::Message>().setVote(voted_yes);
+		messageReady(message_builder);
+  }
+
 	void sendCaptcha(const std::string& username, std::uint32_t id) {
 		capnp::MallocMessageBuilder message_builder;
 		auto message = message_builder.initRoot<CollabVmClientMessage::Message>();
 		auto captcha = message.initSendCaptcha();
+    captcha.setUsername(username);
+    captcha.setChannel(id);
+		messageReady(message_builder);
+	}
+
+	void kickUser(const std::string& username, std::uint32_t id) {
+		capnp::MallocMessageBuilder message_builder;
+		auto message = message_builder.initRoot<CollabVmClientMessage::Message>();
+		auto captcha = message.initKickUser();
     captcha.setUsername(username);
     captcha.setChannel(id);
 		messageReady(message_builder);
@@ -1757,6 +1810,7 @@ emscripten::class_<ServerSettingsWrapper>("ServerSetting")
 	.function("sendChatMessage", &Serializer::sendChatMessage)
 	.function("sendDeleteVm", &Serializer::sendDeleteVm)
 	.function("sendTurnRequest", &Serializer::sendTurnRequest)
+	.function("sendVote", &Serializer::sendVote)
 	.function("sendCaptcha", &Serializer::sendCaptcha)
 	.function("sendBanIpRequest", &Serializer::sendBanIpRequest)
 	.function("pauseTurnTimer", &Serializer::pauseTurnTimer)

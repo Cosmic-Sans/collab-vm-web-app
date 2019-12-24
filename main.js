@@ -7,7 +7,9 @@ let currentVmId = null;
 let hasTurn = false;
 let username = null;
 let turnInterval = null;
+let voteInterval = null;
 let captchaRequired = false;
+let hasVoted = false;
 
 registerUrlRouter(path => {
   const socket = getSocket();
@@ -447,7 +449,7 @@ const getIpAddress = byteVector => {
 };
 
 const hideEverything = () => {
-  $("#loading, #not-found, #vm-view, #vm-list, #login-register-container, #register-form, #login-form").hide();
+  $("#loading, #not-found, #vm-view, #vm-list, #login-register-container, #register-form, #login-form, #vote-alert, #vote-status, #start-vote-button").hide();
   $("#captcha-modal").modal("hide");
 };
 const viewServerList = () => {
@@ -467,6 +469,48 @@ function viewVm() {
   hideEverything();
   $("#vm-view").show();
   $("#chat-input, #chat-send-btn").prop("disabled", false);
+
+	$("#start-vote-button").off("click").click(function() {
+    if (captchaRequired) {
+      showCaptchaModal(() => $("#start-vote-button").click());
+      return;
+    }
+		if (hasVoted) {
+      return;
+    }
+		hasVoted = true;
+		getSocket().sendVote(true);
+	});
+	
+	$("#vote-yes-button").off("click").click(function() {
+    if (captchaRequired) {
+      showCaptchaModal(() => $("#vote-yes-button").click());
+      return;
+    }
+		if (hasVoted) {
+      return;
+    }
+    hasVoted = true;
+    getSocket().sendVote(true);
+    $("#vote-alert").hide();
+	});
+	
+	$("#vote-no-button").off("click").click(function() {
+    if (captchaRequired) {
+      showCaptchaModal(() => $("#vote-no-button").click());
+      return;
+    }
+		if (hasVoted) {
+      return;
+    }
+    hasVoted = true;
+    getSocket().sendVote(false);
+    $("#vote-alert").hide();
+	});
+	
+	$("#vote-dismiss-button").off("click").click(function() {
+		$("#vote-alert").hide();
+	});
 }
 
 function showCaptchaModal(callback) {
@@ -485,6 +529,7 @@ function showCaptchaModal(callback) {
       }
     });
   modal.modal("show");
+}
 
 const goBackOrHome = () => {
   if (window.history.state) {
@@ -493,6 +538,14 @@ const goBackOrHome = () => {
     setUrl("/");
   }
 };
+
+function hideVotes() {
+  if (voteInterval) {
+    clearInterval(voteInterval);
+    voteInterval = null;
+  }
+  $("#vote-status, #vote-alert").hide();
+}
 
 addMessageHandlers({
   onConnect: (newUsername, captchaRequired2) => {
@@ -508,6 +561,46 @@ addMessageHandlers({
     if (hasTurn) {
       showCaptchaModal();
     }
+  },
+  onVotesDisabled: () => {
+    hideVotes();
+    $("#start-vote-button").hide();
+  },
+  onVoteStatus: (timeRemaining, yesVoteCount, noVoteCount) => {
+    hideVotes();
+    $("#start-vote-button").show().prop("disabled", timeRemaining);
+    if (!timeRemaining) {
+      return;
+    }
+    $("#vote-label-yes").html(yesVoteCount);
+    $("#vote-label-no").html(noVoteCount);
+    if (voteInterval) {
+      clearInterval(voteInterval);
+      voteInterval = null;
+    }
+    var ms = timeRemaining;
+    const voteStatus = () => {
+      ms -= 1000;
+      var seconds = Math.floor(ms / 1000);
+      if (seconds <= 0) {
+        clearInterval(voteInterval);
+      } else {
+        $("#vote-time").html(seconds);
+      }
+    };
+    voteStatus();
+    $("#vote-status").show();
+
+    voteInterval = setInterval(voteStatus, 1000);
+
+    if (!hasVoted) {
+      $("#vote-alert").show();
+    }
+  },
+  onVoteResult: votePassed => {
+    hasVoted = false;
+    hideVotes();
+    $("#start-vote-button").show()
   },
   onVmDescription: description =>
     $("#vm-description").text(description),

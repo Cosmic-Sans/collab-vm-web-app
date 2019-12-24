@@ -14,18 +14,18 @@ div#display {
 }
 </style>
 <div id="vm-view" style="display: none;">
-  <div class="page-header text-center" style="margin-top: -20px;">
+  <div style="text-align: center">
     <h2><small>Click the screen to request a turn and control the computer!</small></h2>
   </div>
   <div id="display-outer">
     <div id="display"></div>
     <div style="display:none;" class="alert alert-info alert-dismissible" role="alert" id="vote-alert">
         Do you want to reset the VM?
-        <button type="button" class="btn btn-success" id="vote-yes">Yes</button>
-        <button type="button" class="btn btn-danger" id="vote-no">No</button>
-        <button type="button" class="close" aria-label="Close" id="vote-dismiss"><span aria-hidden="true">&times;</span></button>
+        <button type="button" class="ui button" id="vote-yes-button">Yes</button>
+        <button type="button" class="ui button" id="vote-no-button">No</button>
+        <button type="button" class="close" aria-label="Close" id="vote-dismiss-button"><span aria-hidden="true">&times;</span></button>
     </div>
-    <div style="display:none;" id="vote-stats">
+    <div style="display:none;" id="vote-status">
       <h3><small>Votes for VM Reset (<span id="vote-time"></span>)</small></h3>
       <h4><span class="label label-success">Yes: <span id="vote-label-yes"></span></span> <span class="label label-danger">No: <span id="vote-label-no"></span></span></h4>
     </div>
@@ -41,7 +41,7 @@ div#display {
       <div class="row">
         <button style="display: none;" class="ui button" type="button" id="osk-btn">Keyboard</button>
         <button style="display: none;" class="ui button" type="button" data-toggle="modal" data-target="#username-modal" id="username-btn" disabled>Change Username</button>
-        <button style="display: none;" class="ui button" type="button" id="vote-btn">Vote for Reset</button>
+        <button style="display: none;" class="ui button" type="button" id="start-vote-button">Vote for Reset</button>
         <button style="display: none;" class="ui button" type="button" id="upload-options-btn">Upload File</button>
         <button class="ui button" type="button" id="end-turn-btn"><i class="stop icon"></i>End Turn</button>
         <div id="file-upload" class="form-inline" style="display: none;">
