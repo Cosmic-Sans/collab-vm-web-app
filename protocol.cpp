@@ -201,6 +201,9 @@ struct ServerSettingsWrapper {
             case ServerSetting::Setting::CAPTCHA:
                 captcha_ = CaptchaWrapper(setting.getCaptcha());
                 break;
+            case ServerSetting::Setting::CAPTCHA_REQUIRED:
+                captchaRequired_ = setting.getCaptchaRequired();
+                break;
             case ServerSetting::Setting::USER_VMS_ENABLED:
                 userVmsEnabled_ = setting.getUserVmsEnabled();
                 break;
@@ -229,6 +232,9 @@ struct ServerSettingsWrapper {
                 break;
             case ServerSetting::Setting::CAPTCHA:
                                 captcha_.serialize(setting.initCaptcha());
+                break;
+            case ServerSetting::Setting::CAPTCHA_REQUIRED:
+                                setting.setCaptchaRequired(captchaRequired_);
                 break;
             case ServerSetting::Setting::USER_VMS_ENABLED:
                                 setting.setUserVmsEnabled(userVmsEnabled_);
@@ -265,6 +271,13 @@ struct ServerSettingsWrapper {
         captcha_ = std::forward<CaptchaWrapper>(captcha);
         modified_settings_.emplace(ServerSetting::Setting::CAPTCHA);
     }
+    bool getCaptchaRequired() const {
+        return captchaRequired_;
+    }
+    void setCaptchaRequired(bool enabled) {
+        captchaRequired_ = enabled;
+        modified_settings_.emplace(ServerSetting::Setting::CAPTCHA_REQUIRED);
+    }
     bool getUserVmsEnabled() const {
         return userVmsEnabled_;
     }
@@ -295,6 +308,7 @@ struct ServerSettingsWrapper {
     }
     private:
         bool allowAccountRegistration_;
+        bool captchaRequired_;
         CaptchaWrapper captcha_;
         bool recaptchaEnabled_;
         std::string recaptchaKey_;
@@ -795,7 +809,7 @@ struct Deserializer {
           std::cout << "connect result: " << static_cast<std::uint16_t>(result.which()) << std::endl;
           if (result.which() == 0) {
             auto success = result.getSuccess();
-            onConnect(success.getUsername());
+            onConnect(success.getUsername(), success.getCaptchaRequired());
             for (auto chat_message :
                  success.getChatMessages()) {
               onChatMessage(0, chat_message.getSender(), chat_message.getMessage(), chat_message.getTimestamp());
@@ -887,6 +901,12 @@ struct Deserializer {
         {
           const auto invite = message.getInviteValidationResponse();
           onInviteValidationResponse(invite.getIsValid(), invite.getUsername());
+          break;
+        }
+        case CollabVmServerMessage::Message::CAPTCHA_REQUIRED:
+        {
+          const auto required = message.getCaptchaRequired();
+          onCaptchaRequired(required);
           break;
         }
       }
@@ -1217,7 +1237,7 @@ struct Deserializer {
 	virtual void onAdminVms(const std::vector<AdminVmInfoWrapper>& vms) = 0;
 	virtual void onGuacInstr(std::string&& instr_name, const emscripten::val& instr) = 0;
   virtual void onChatMessage(std::uint32_t channel_id, std::string&& username, std::string&& message, double timestamp) = 0;
-  virtual void onConnect(std::string&& username) = 0;
+  virtual void onConnect(std::string&& username, bool captcha_required) = 0;
   virtual void onUserList(std::uint32_t channel_id, std::vector<std::string>&& usernames) = 0;
   virtual void onUserListAdd(std::uint32_t channel_id, std::string&& username) = 0;
   virtual void onUserListRemove(std::uint32_t channel_id, std::string&& username) = 0;
@@ -1226,6 +1246,7 @@ struct Deserializer {
   virtual void onVmDescription(std::string&& username) = 0;
   virtual void onCreateInviteResult(std::vector<std::uint8_t>&& id) = 0;
   virtual void onInviteValidationResponse(bool is_valid, std::string&& username) = 0;
+	virtual void onCaptchaRequired(bool required) = 0;
 
   virtual ~Deserializer() = default;
 };
@@ -1281,8 +1302,8 @@ struct DeserializerWrapper : public emscripten::wrapper<Deserializer> {
   void onChatMessage(std::uint32_t channel_id, std::string&& username, std::string&& message, double timestamp) {
 		return call<void>("onChatMessage", channel_id, std::move(username), std::move(message), timestamp);
   }
-  void onConnect(std::string&& username) {
-		return call<void>("onConnect", std::move(username));
+  void onConnect(std::string&& username, bool captcha_required) {
+		return call<void>("onConnect", std::move(username), captcha_required);
   }
   virtual void onUserList(std::uint32_t channel_id, std::vector<std::string>&& usernames) {
 		return call<void>("onUserList", channel_id, usernames);
@@ -1307,6 +1328,9 @@ struct DeserializerWrapper : public emscripten::wrapper<Deserializer> {
   }
   virtual void onInviteValidationResponse(bool is_valid, std::string&& username) {
     return call<void>("onInviteValidationResponse", is_valid, std::move(username));
+  }
+  virtual void onCaptchaRequired(bool required) {
+    return call<void>("onCaptchaRequired", required);
   }
 };
 
@@ -1388,6 +1412,7 @@ const auto byte_array = array.asBytes();
     if (!invite_id.empty()) {
       registration_request.setInviteId(kj::ArrayPtr<const std::uint8_t>(invite_id.data(), invite_id.size()));
     }
+    registration_request.setCaptchaToken(captcha_token);
 		messageReady(message_builder);
 	}
 
@@ -1531,6 +1556,15 @@ const auto byte_array = array.asBytes();
 		messageReady(message_builder);
   }
 
+	void sendCaptcha(const std::string& username, std::uint32_t id) {
+		capnp::MallocMessageBuilder message_builder;
+		auto message = message_builder.initRoot<CollabVmClientMessage::Message>();
+		auto captcha = message.initSendCaptcha();
+    captcha.setUsername(username);
+    captcha.setChannel(id);
+		messageReady(message_builder);
+	}
+
   void sendBanIpRequest(std::vector<std::uint8_t> ip_address_bytes) {
 		capnp::MallocMessageBuilder message_builder;
 		auto message = message_builder.initRoot<CollabVmClientMessage::Message>();
@@ -1671,6 +1705,8 @@ emscripten::class_<ServerSettingsWrapper>("ServerSetting")
     .function("setAllowAccountRegistration", &ServerSettingsWrapper::setAllowAccountRegistration)
     .function("getCaptcha", &ServerSettingsWrapper::getCaptcha)
     .function("setCaptcha", &ServerSettingsWrapper::setCaptcha)
+    .function("getCaptchaRequired", &ServerSettingsWrapper::getCaptchaRequired)
+    .function("setCaptchaRequired", &ServerSettingsWrapper::setCaptchaRequired)
     .function("getUserVmsEnabled", &ServerSettingsWrapper::getUserVmsEnabled)
     .function("setUserVmsEnabled", &ServerSettingsWrapper::setUserVmsEnabled)
     .function("getAllowUserVmRequests", &ServerSettingsWrapper::getAllowUserVmRequests)
@@ -1721,12 +1757,14 @@ emscripten::class_<ServerSettingsWrapper>("ServerSetting")
 	.function("sendChatMessage", &Serializer::sendChatMessage)
 	.function("sendDeleteVm", &Serializer::sendDeleteVm)
 	.function("sendTurnRequest", &Serializer::sendTurnRequest)
+	.function("sendCaptcha", &Serializer::sendCaptcha)
 	.function("sendBanIpRequest", &Serializer::sendBanIpRequest)
 	.function("pauseTurnTimer", &Serializer::pauseTurnTimer)
 	.function("resumeTurnTimer", &Serializer::resumeTurnTimer)
 	.function("endTurn", &Serializer::endTurn)
 	.function("createUserInvite", &Serializer::createUserInvite)
 	.function("validateInvite", &Serializer::validateInvite)
+	.function("sendCaptchaCompleted", &Serializer::sendCaptchaCompleted)
 	.allow_subclass<SerializerWrapper>("SerializerWrapper")
 		//.class_function("getServerConfigModification", &Serializer::getServerConfigModification)
 	;

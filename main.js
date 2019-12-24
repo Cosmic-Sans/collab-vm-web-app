@@ -7,6 +7,7 @@ let currentVmId = null;
 let hasTurn = false;
 let username = null;
 let turnInterval = null;
+let captchaRequired = false;
 
 registerUrlRouter(path => {
   const socket = getSocket();
@@ -144,6 +145,10 @@ const guacClient = new Guacamole.Client(collabVmTunnel);
 const display = document.getElementById("display");
 guacClient.getDisplay().getElement().addEventListener("mousedown", () => document.activeElement.blur());
 guacClient.getDisplay().getElement().addEventListener("click", () => {
+  if (captchaRequired) {
+    showCaptchaModal(() => getSocket().sendTurnRequest());
+    return;
+  }
   if (!hasTurn) {
     getSocket().sendTurnRequest();
   }
@@ -380,8 +385,10 @@ const addUsers = (users, ipAddresses) =>
       onChange: value => {
         switch (value) {
           case "captcha":
+            getSocket().sendCaptcha(user, currentVmId);
             break;
           case "kick":
+            getSocket().kickUser(user, currentVmId);
             break;
           case "copy-ip":
 						copyToClipboard(ipAddresses[i].string);
@@ -441,6 +448,7 @@ const getIpAddress = byteVector => {
 
 const hideEverything = () => {
   $("#loading, #not-found, #vm-view, #vm-list, #login-register-container, #register-form, #login-form").hide();
+  $("#captcha-modal").modal("hide");
 };
 const viewServerList = () => {
   showLoading();
@@ -461,6 +469,23 @@ function viewVm() {
   $("#chat-input, #chat-send-btn").prop("disabled", false);
 }
 
+function showCaptchaModal(callback) {
+  const modal = $("#captcha-modal");
+  grecaptcha.render(
+    $("<div>").appendTo(modal.find(".content").empty())[0],
+    {
+      sitekey: RECAPTCHA_SITE_KEY,
+      callback: token => {
+        modal.modal("hide");
+        getSocket().sendCaptchaCompleted(token);
+        captchaRequired = false;
+        if (callback) {
+          callback();
+        }
+      }
+    });
+  modal.modal("show");
+
 const goBackOrHome = () => {
   if (window.history.state) {
     window.history.back();
@@ -470,12 +495,19 @@ const goBackOrHome = () => {
 };
 
 addMessageHandlers({
-  onConnect: newUsername => {
+  onConnect: (newUsername, captchaRequired2) => {
     if (newUsername) {
       updateSession("", newUsername);
     }
+    captchaRequired = captchaRequired2;
     guacClient.connect();
     viewVm();
+  },
+  onCaptchaRequired: captchaRequired2 => {
+    captchaRequired = captchaRequired2;
+    if (hasTurn) {
+      showCaptchaModal();
+    }
   },
   onVmDescription: description =>
     $("#vm-description").text(description),

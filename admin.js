@@ -508,6 +508,12 @@ function showServerConfig(config) {
     config.setCaptcha(Object.assign(config.getCaptcha(), {validJSONVariableName: this.value}));
     getSocket().sendServerConfigModifications(config);
   });
+
+  $("#require-captcha-checkbox").prop("checked", config.getCaptchaRequired()).off("change").change(function() {
+    const config = window.serverConfig;
+    config.setCaptchaRequired(this.value);
+    getSocket().sendServerConfigModifications(config);
+  });
 }
 //showServerConfig();
 function loadServerConfig() {
