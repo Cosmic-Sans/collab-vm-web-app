@@ -249,7 +249,6 @@ struct ServerSettingsWrapper {
                                 setting.setUnbanIpCommand(unbanIpCommand_);
                 break;
                                 default:
-                                std::cout << "unknown setting" << std::endl;
                                 assert(false);
                         }
                         i++;
@@ -406,8 +405,6 @@ struct VmSettingsWrapper {
     void getCreateVmRequest(capnp::List<VmSetting>::Builder settings) {
                 auto i = 0;
                 for (const auto setting_type : modified_settings_) {
-                  std::cout << "setting_type: " << setting_type << "\n";
-                  std::cout << "i: " << i << "\n";
                         auto setting = settings[i].initSetting();
                         switch (static_cast<const VmSetting::Setting::Which>(setting_type)) {
             case VmSetting::Setting::AUTO_START:
@@ -420,7 +417,6 @@ struct VmSettingsWrapper {
                                 setting.setDescription(description_);
                 break;
             case VmSetting::Setting::HOST:
-                std::cout << "host_: " << host_ << '\n';
                                 setting.setHost(host_);
                 break;
             case VmSetting::Setting::OPERATING_SYSTEM:
@@ -707,7 +703,6 @@ struct Deserializer {
     while (word_array.size()) {
       auto reader = capnp::FlatArrayMessageReader(word_array);
       const auto message = reader.getRoot<CollabVmServerMessage>().getMessage();
-      std::cout << "message.which(): " << static_cast<int>(message.which()) << std::endl;
       switch (message.which())
       {
         case CollabVmServerMessage::Message::VM_LIST_RESPONSE:
@@ -806,7 +801,6 @@ struct Deserializer {
         case CollabVmServerMessage::Message::CONNECT_RESPONSE:
         {
           const auto result = message.getConnectResponse().getResult();
-          std::cout << "connect result: " << static_cast<std::uint16_t>(result.which()) << std::endl;
           if (result.which() == 0) {
             auto success = result.getSuccess();
             onConnect(success.getUsername(), success.getCaptchaRequired());
@@ -1468,11 +1462,8 @@ const auto byte_array = array.asBytes();
 
 	void sendCreateVmRequest(VmSettingsWrapper& vmSettings) {
 		capnp::MallocMessageBuilder message_builder;
-    std::cout << "vmSettings.size() = " << vmSettings.size() << '\n';
 		auto settings = message_builder.initRoot<CollabVmClientMessage::Message>().initCreateVm(vmSettings.size());
 		vmSettings.getCreateVmRequest(settings);
-    std::cout << "settings.size()" << settings.size() << '\n';
-    std::cout << "getSegmentsForOutput(): " << message_builder.getSegmentsForOutput().size() << '\n';
 		messageReady(message_builder);
 	}
 
@@ -1513,7 +1504,6 @@ const auto byte_array = array.asBytes();
     const auto args_length = arguments["length"].as<unsigned>();
 
     capnp::MallocMessageBuilder message_builder;
-    //auto instr = message_builder.initRoot<Guacamole::GuacClientInstruction>();
     auto instr = message_builder.initRoot<CollabVmClientMessage::Message>().initGuacInstr();
     capnp::DynamicStruct::Builder dynamic_reader = instr;
 
@@ -1526,6 +1516,11 @@ const auto byte_array = array.asBytes();
     if (instr_field == fields.end())
     {
       std::cerr << "Unknown instruction '" << instr_name << "'\n";
+      return;
+    }
+
+    if (instr_field->getIndex() == Guacamole::GuacClientInstruction::Which::NOP)
+    {
       return;
     }
 
