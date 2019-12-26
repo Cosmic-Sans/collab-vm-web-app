@@ -9,15 +9,16 @@
 	left: 0;
 	height: auto;
 	width: auto;
-	/*margin: 0 200px 31px 0;*/
-	margin-bottom: 44px;
+    margin: 0 20px 31px 0;
+    margin-bottom: 0;
 	background-color: #eee;
 	font-size: 13px;
 	padding: 0 5px;
+    border: 1px solid #ddd;
 }
 
-.message-pane {
-	padding-top: 1px;
+.input-group-addon {
+    background-color: #E0E1E2;
 }
 
 .message-pane li {
