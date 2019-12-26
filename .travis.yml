@@ -17,9 +17,7 @@ script:
 - mkdir -p build/collab-vm-web-app
 - docker exec -it emscripten sh -c "cd build/collab-vm-web-app && emcmake cmake -DCAPNP_ROOT=../capnp_tool/install
   ../.. && cmake --build ."
-- node ./node_modules/webpack-cli/bin/cli.js --config ./webpack.prod.js
-- mv dist/ web-app/
-- tar -czvf web-app.tar.gz web-app/
+- tar -czvf wasm.tar.gz build/collab-vm-web-app/
 before_deploy:
     # Move the tag to the most recent commit, but delete it first
     # so GitHub updates the timestamp of the release
@@ -31,13 +29,13 @@ before_deploy:
   - git push --force --tags origin prerelease
 deploy:
   provider: releases
-  file: web-app.tar.gz
+  file: wasm.tar.gz
   prerelease: true
   draft: false
   overwrite: true
   skip_cleanup: true
   on:
-    branch: master
+    all_branches: true
     tags: false
   api_key:
     secure: YjFP2MkkNAPtFXv61OBo6qLw3+6lzGXNUXbWYFcEsvtccHgdZsuuFuCY1lB4QAgylDc0CnlTiVVT4wYVDsnmQI46ggxbbXOQzl2tZUQ8gsA9NqEA/DXRhJAQudiHNTHyunMnlLU34+T/ZGPVUzG190UI+i6vOV9NCBw+VTRxLZKGA0Fm1vBJ6qzTCdqIKWWNOcNiJ5b6MA0LSzt6GO6brdKnnm9gzaEY1WCMCBz58Bm56tZs/szQm8y+lMUb9hjt2VaZaDvk5jzpeI1bWAc9MdPd3ORTH08D46N+4LUG300i5hGdDnavRS4+dKgTZ4BYv3DwM69y+NEjlwYl5NawbKIKqdtfBCaK72lFzeQ4TAWAO1OHDdRK1k2C31lEX2/1RGT5s4t7ezIXrvJedgg6qtPZrJkdmpBxZ+j7RuF8z9DjmWI3krln4DgpWk81sBjCt4UCfDGrdMj0pMkccOuXRlyIIwriEO2bCyQP5IciKmF0iJsAMu8rohL/OvUuHq8hRY10oQjJ5cnbbztW77/bsjou0qoM4JyHPqnefepyFkPnRz0gRWs5ksd1EsXiLGsULcBuscZDTYVEht1ew1JlMHAbdPOEPzVfzjK9l5a83onILG1enwWszfCHZpy3TVMSN7Ienkx/sXlfy85YXFaPzwTv1JWry+bjUk9cBbBvEMA=
