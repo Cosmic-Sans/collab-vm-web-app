@@ -1,5 +1,6 @@
 collab-vm-web-app
 -----------------
+[![Travis build status](https://travis-ci.org/Cosmic-Sans/collab-vm-web-app.svg?branch=master)](https://travis-ci.org/Cosmic-Sans/collab-vm-web-app)
 
 Building
 --------
