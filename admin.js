@@ -539,7 +539,7 @@ function showServerConfig(config) {
 
   $("#require-captcha-checkbox").prop("checked", config.getCaptchaRequired()).off("change").change(function() {
     const config = window.serverConfig;
-    config.setCaptchaRequired(this.value);
+    config.setCaptchaRequired(this.checked);
     getSocket().sendServerConfigModifications(config);
   });
 }
