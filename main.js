@@ -643,7 +643,7 @@ addMessageHandlers({
             turnInterval = null;
             $("#status").html("");
           }
-        }, Math.round(parseInt(parameters[parameters.length-1])/1000)*1000);
+        }, Math.round(timeRemaining/1000)*1000);
     } else {
       if (hasTurn) {
         hasTurn = false;
