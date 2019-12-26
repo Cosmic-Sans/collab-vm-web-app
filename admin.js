@@ -315,7 +315,7 @@ addMessageHandlers({
       return;
     }
     const base64Id = btoa(String.fromCharCode.apply(null, id));
-    const link = `${window.location.origin}${window.location.pathname}#invite-${base64Id}`;
+    const link = `${window.location.origin}${__webpack_public_path__}invite/${base64Id}`;
     $("#user-invite-modal-link").attr("href", link).text(link);
     $("#user-invite-modal").modal("show");
   },
@@ -401,7 +401,7 @@ $("#unban-ip-cmd-box").change(function() {
 });
 
 $("#user-invite-create-button").click(() => {
-  common.getSocket().createUserInvite(
+  getSocket().createUserInvite(
     {
       id: "",
       inviteName: $("#user-invite-description-box").val(),
