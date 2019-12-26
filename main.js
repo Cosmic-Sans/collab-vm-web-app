@@ -1,6 +1,7 @@
 import {registerUrlRouter, setUrl, getPath, getSocket, addMessageHandlers, saveSessionInfo, loadSessionInfo} from "common";
 import $ from "jquery";
 import Guacamole from "Guacamole";
+import "chat.css";
 import {fromByteArray as ipFromByteArray} from "ipaddr.js";
 
 let currentVmId = null;
