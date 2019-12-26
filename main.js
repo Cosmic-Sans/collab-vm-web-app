@@ -212,9 +212,13 @@ $("#chat-input").keypress(function(e) {
 });
 
 $("#chat-send-btn").click(function() {
+  if (captchaRequired) {
+    showCaptchaModal(() => $("#chat-send-btn").click());
+    return;
+  }
   var chat = $("#chat-input");
   var msg = chat.val().trim();
-  if (guacClient.currentState === Guacamole.Client.CONNECTED && msg) {
+  if (msg.length > 0 && msg.length <= maxChatMsgLen) {
     getSocket().sendChatMessage(currentVmId, msg);
     chat.val("");
   }
@@ -469,7 +473,8 @@ const viewServerList = () => {
 function viewVm() {
   hideEverything();
   $("#vm-view").show();
-  $("#chat-input, #chat-send-btn").prop("disabled", false);
+  $("#chat-input").prop("disabled", captchaRequired);
+  $("#chat-send-btn").prop("disabled", false);
 
 	$("#start-vote-button").off("click").click(function() {
     if (captchaRequired) {
@@ -524,6 +529,7 @@ function showCaptchaModal(callback) {
         modal.modal("hide");
         getSocket().sendCaptchaCompleted(token);
         captchaRequired = false;
+        $("#chat-input").prop("disabled", captchaRequired);
         if (callback) {
           callback();
         }
@@ -554,11 +560,14 @@ addMessageHandlers({
       updateSession("", newUsername);
     }
     captchaRequired = captchaRequired2;
+    $("#chat-input").prop("disabled", captchaRequired);
     guacClient.connect();
+    $("#chat-box").empty();
     viewVm();
   },
   onCaptchaRequired: captchaRequired2 => {
     captchaRequired = captchaRequired2;
+    $("#chat-input").prop("disabled", captchaRequired);
     if (hasTurn) {
       showCaptchaModal();
     }
