@@ -670,9 +670,9 @@ addMessageHandlers({
     const atBottom = chatPanel.offsetHeight + chatPanel.scrollTop >= chatPanel.scrollHeight;
     var chatElement = $('<li><div></div></li>');
     if (username) {
-      chatElement.children().first().html(message).prepend($('<span class="username"></span>').text(username), '<span class="spacer">\u25B8</span>');
+      chatElement.children().first().text(message).prepend($('<span class="username"></span>').text(username), '<span class="spacer">\u25B8</span>');
     } else {
-      chatElement.children().first().addClass("server-message").html(message);
+      chatElement.children().first().addClass("server-message").text(message);
     }
 
     const timestampElement = $('<span class="chat-timestamp"></span>');
