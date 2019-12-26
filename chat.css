@@ -9,8 +9,8 @@
 	left: 0;
 	height: auto;
 	width: auto;
-    margin: 0 20px 31px 0;
-    margin-bottom: 0;
+	margin: 0 20px 31px 0;
+	margin-bottom: 0;
 	background-color: #eee;
 	font-size: 13px;
 	padding: 0 5px;
@@ -18,7 +18,7 @@
 }
 
 .input-group-addon {
-    background-color: #E0E1E2;
+	background-color: #E0E1E2;
 }
 
 .message-pane li {
