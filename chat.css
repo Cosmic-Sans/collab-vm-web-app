@@ -14,7 +14,11 @@
 	background-color: #eee;
 	font-size: 13px;
 	padding: 0 5px;
-    border: 1px solid #ddd;
+	border: 1px solid #ddd;
+}
+
+.message-pane {
+	padding-top: 1px;
 }
 
 .input-group-addon {
