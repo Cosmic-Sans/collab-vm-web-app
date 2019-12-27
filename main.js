@@ -142,6 +142,20 @@ const CollabVmTunnel = function() {
   };
   //this.onerror = () => {};
 };
+
+$("#mute-button").click(function() {
+  const audioContext = Guacamole.AudioContextFactory.getAudioContext();
+  const audioGain = Guacamole.AudioContextFactory.gain;
+  const $icon = $(this).children("i");
+  if ($icon.hasClass("mute")) {
+    audioGain.gain.setValueAtTime(1, audioContext.currentTime);
+    $icon.addClass("up").removeClass("mute")[0].nextSibling.nodeValue = "Mute";
+  } else {
+    audioGain.gain.setValueAtTime(0, audioContext.currentTime);
+    $icon.addClass("mute").removeClass("up")[0].nextSibling.nodeValue = "Unmute";
+  }
+});
+
 CollabVmTunnel.prototype = new Guacamole.Tunnel();
 const collabVmTunnel = new CollabVmTunnel();
 const guacClient = new Guacamole.Client(collabVmTunnel);
