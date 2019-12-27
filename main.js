@@ -1,4 +1,4 @@
-import {registerUrlRouter, setUrl, getPath, getSocket, addMessageHandlers, saveSessionInfo, loadSessionInfo} from "common";
+import {registerUrlRouter, setUrl, getPath, getSocket, addMessageHandlers, saveSessionInfo, loadSessionInfo, common} from "common";
 import $ from "jquery";
 import Guacamole from "Guacamole";
 import "chat.css";
@@ -211,30 +211,46 @@ keyboard.onkeyup = function(keysym) {
 };
 window.onblur = keyboard.reset;
 
-const maxChatMsgLen = 100;
 $("#chat-input").keypress(function(e) {
   const enterKeyCode = 13;
   if (e.which === enterKeyCode) {
     e.preventDefault();
     $("#chat-send-btn").trigger("click");
-  } else if (this.value.length >= maxChatMsgLen) {
+  } else if (this.value.length >= common.getMaxChatMessageLength()) {
     e.preventDefault();
   }
 }).on("input", function() {
   // Truncate chat messages that are too long
+  const maxChatMsgLen = common.getMaxChatMessageLength();
   if (this.value.length > maxChatMsgLen) {
     this.value = this.value.substr(0, maxChatMsgLen);
   }
 });
 
+let lastChatMessageTime = 0;
 $("#chat-send-btn").click(function() {
+  const $this = $(this);
+  if ($this.prop("disabled")) {
+    return;
+  }
   if (captchaRequired) {
     showCaptchaModal(() => $("#chat-send-btn").click());
     return;
   }
+  const now = Date.now();
+  const waitTime = now - lastChatMessageTime;
+  const chatRateLimit = common.getChatRateLimit();
+  if (waitTime < chatRateLimit) {
+    $this.prop("disabled", true).addClass("loading");
+    setTimeout(() => {
+      $this.prop("disabled", false).removeClass("loading").trigger("click");
+    }, chatRateLimit - waitTime);
+    return;
+  }
   var chat = $("#chat-input");
   var msg = chat.val().trim();
-  if (msg.length > 0 && msg.length <= maxChatMsgLen) {
+  if (msg.length > 0 && msg.length <= common.getMaxChatMessageLength()) {
+    lastChatMessageTime = now;
     getSocket().sendChatMessage(currentVmId, msg);
     chat.val("");
   }
@@ -577,6 +593,7 @@ addMessageHandlers({
       updateSession("", newUsername);
     }
     captchaRequired = captchaRequired2;
+    lastChatMessageTime = 0;
     $("#chat-input").prop("disabled", captchaRequired);
     guacClient.connect();
     $("#chat-box").empty();

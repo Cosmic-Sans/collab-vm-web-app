@@ -18,6 +18,7 @@
 #include <capnp/dynamic.h>
 #include <capnp/serialize.h>
 #include "CollabVm.capnp.h"
+#include "CollabVmCommon.hpp"
 
 //char (*_nop)[sizeof(pthread_mutex_t)] = 1;
 
@@ -1817,7 +1818,6 @@ emscripten::class_<ServerSettingsWrapper>("ServerSetting")
 	.function("validateInvite", &Serializer::validateInvite)
 	.function("sendCaptchaCompleted", &Serializer::sendCaptchaCompleted)
 	.allow_subclass<SerializerWrapper>("SerializerWrapper")
-		//.class_function("getServerConfigModification", &Serializer::getServerConfigModification)
 	;
 }
 
@@ -1870,4 +1870,20 @@ emscripten::class_<VmSettingsWrapper>("VmSettings")
     .function("getSafeForWork", &VmSettingsWrapper::getSafeForWork)
     .function("setSafeForWork", &VmSettingsWrapper::setSafeForWork)
 ;
+}
+
+struct Constants {
+  template<typename T>
+  static constexpr std::int32_t toMilliseconds(T time) {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(time).count();
+  }
+  static constexpr std::int32_t getMaxChatMessageLength() { return CollabVm::Common::max_chat_message_len; }
+  static constexpr std::int32_t getChatRateLimit() { return toMilliseconds(CollabVm::Common::chat_rate_limit); }
+};
+
+EMSCRIPTEN_BINDINGS(Constants) {
+  emscripten::class_<Constants>("Constants")
+    .class_function("getMaxChatMessageLength", &Constants::getMaxChatMessageLength)
+    .class_function("getChatRateLimit", &Constants::getChatRateLimit)
+    ;
 }

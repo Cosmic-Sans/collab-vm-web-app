@@ -9,6 +9,7 @@ project(collab-vm-web-app VERSION 2.0.0 LANGUAGES CXX)
 add_executable(${PROJECT_NAME} protocol.cpp)
 
 add_subdirectory(${COLLAB_VM_COMMON} ${COLLAB_VM_COMMON_BINARY_DIR})
+target_include_directories(${PROJECT_NAME} PUBLIC ${COLLAB_VM_COMMON})
 target_link_libraries(${PROJECT_NAME} collab-vm-common)
 set_target_properties(capnp_tool PROPERTIES EXCLUDE_FROM_ALL TRUE)
 set_target_properties(capnpc_cpp PROPERTIES EXCLUDE_FROM_ALL TRUE)

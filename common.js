@@ -81,9 +81,22 @@ const saveSessionInfo = (sessionId, username) => {
 const loadSessionInfo = () => {
   return {sessionId: localStorage["sessionId"], username: localStorage["username"]};
 };
-export { registerUrlRouter, setUrl, getPath, getSocket, addMessageHandlers, createObject, saveSessionInfo, loadSessionInfo };
+let common;
+export {
+  registerUrlRouter,
+  setUrl,
+  getPath,
+  getSocket,
+  addMessageHandlers,
+  createObject,
+  saveSessionInfo,
+  loadSessionInfo,
+  common
+};
 
 runtime.onRuntimeInitialized(() => {
+
+  common = Module.Constants;
 
   serializer = Object.assign(Module.Serializer.implement({
     onMessageReady: message =>
