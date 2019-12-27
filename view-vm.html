@@ -40,7 +40,7 @@ div#display {
     <div class="ui centered grid">
       <div class="row">
         <button style="display: none;" class="ui button" type="button" id="osk-btn">Keyboard</button>
-        <button style="display: none;" class="ui button" type="button" data-toggle="modal" data-target="#username-modal" id="username-btn" disabled>Change Username</button>
+        <button style="display: none;" class="ui button" type="button" id="change-username-button">Change Username</button>
         <button style="display: none;" class="ui button" type="button" id="start-vote-button">Vote for Reset</button>
         <button style="display: none;" class="ui button" type="button" id="upload-options-btn">Upload File</button>
         <button class="ui button" type="button" id="end-turn-btn"><i class="stop icon"></i>End Turn</button>
@@ -91,6 +91,17 @@ div#display {
         <span class="ui labeled input">
           <button id="chat-send-btn" class="ui button" type="button" disabled>Send</button>
         </span>
+      </div>
+    </div>
+  </div>
+  <div id="change-username-modal" class="ui mini modal">
+    <div class="header">
+      Change Username
+    </div>
+    <div class="content">
+      <input id="new-username-input" type="text" class="form-control">
+      <div class="actions">
+        <button class="ui ok button" type="button">OK</button>
       </div>
     </div>
   </div>

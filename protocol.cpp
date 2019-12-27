@@ -884,6 +884,17 @@ struct Deserializer {
           onAdminUserList(user_list.getChannel(), std::move(usernames), std::move(ip_addresses));
         }
         break;
+        case CollabVmServerMessage::Message::USERNAME_TAKEN:
+        {
+          onUsernameTaken();
+        }
+        break;
+        case CollabVmServerMessage::Message::CHANGE_USERNAME:
+        {
+          const auto username_change = message.getChangeUsername();
+          onUsernameChange(username_change.getOldUsername(), username_change.getNewUsername());
+        }
+        break;
         case CollabVmServerMessage::Message::VM_DESCRIPTION:
           onVmDescription(message.getVmDescription());
           break;
@@ -1258,6 +1269,8 @@ struct Deserializer {
   virtual void onUserListRemove(std::uint32_t channel_id, std::string&& username) = 0;
   virtual void onAdminUserList(std::uint32_t channel_id, std::vector<std::string>&& usernames, std::vector<std::vector<std::uint8_t>>&& ip_addresses) = 0;
   virtual void onAdminUserListAdd(std::uint32_t channel_id, std::string&& username, std::vector<std::uint8_t> ip_address) = 0;
+  virtual void onUsernameTaken() = 0;
+  virtual void onUsernameChange(std::string&& oldUsername, std::string&& newUsername) = 0;
   virtual void onVmDescription(std::string&& username) = 0;
   virtual void onCreateInviteResult(std::vector<std::uint8_t>&& id) = 0;
   virtual void onInviteValidationResponse(bool is_valid, std::string&& username) = 0;
@@ -1337,6 +1350,12 @@ struct DeserializerWrapper : public emscripten::wrapper<Deserializer> {
   }
   virtual void onAdminUserListAdd(std::uint32_t channel_id, std::string&& username, std::vector<std::uint8_t> ip_address) {
 		return call<void>("onAdminUserListAdd", channel_id, username, ip_address);
+  }
+  virtual void onUsernameTaken() {
+    return call<void>("onUsernameTaken");
+  }
+  virtual void onUsernameChange(std::string&& oldUsername, std::string&& newUsername) {
+    return call<void>("onUsernameChange", oldUsername, newUsername);
   }
   virtual void onVmDescription(std::string&& description) {
     return call<void>("onVmDescription", std::move(description));
@@ -1879,11 +1898,13 @@ struct Constants {
   }
   static constexpr std::int32_t getMaxChatMessageLength() { return CollabVm::Common::max_chat_message_len; }
   static constexpr std::int32_t getChatRateLimit() { return toMilliseconds(CollabVm::Common::chat_rate_limit); }
+  static constexpr std::int32_t getUsernameChangeRateLimit() { return toMilliseconds(CollabVm::Common::username_change_rate_limit); }
 };
 
 EMSCRIPTEN_BINDINGS(Constants) {
   emscripten::class_<Constants>("Constants")
     .class_function("getMaxChatMessageLength", &Constants::getMaxChatMessageLength)
     .class_function("getChatRateLimit", &Constants::getChatRateLimit)
+    .class_function("getUsernameChangeRateLimit", &Constants::getUsernameChangeRateLimit)
     ;
 }

@@ -12,6 +12,7 @@ let voteInterval = null;
 let captchaRequired = false;
 let hasVoted = false;
 let isAdmin = false;
+let isLoggedIn = false;
 
 registerUrlRouter(path => {
   const socket = getSocket();
@@ -264,6 +265,7 @@ const updateSession = (sessionId, newUsername) => {
   username = newUsername;
   $("#chat-user").text(username);
   saveSessionInfo(sessionId, username);
+  isLoggedIn = !!sessionId;
 };
 
 collabVmTunnel.onstatechange = function(state) {
@@ -505,6 +507,13 @@ const viewServerList = () => {
 function viewVm() {
   hideEverything();
   $("#vm-view").show();
+  $("#change-username-button").toggle(!isLoggedIn).click(() => {
+    $("#change-username-modal").modal({
+      onApprove: () => {
+        getSocket().changeUsername($("#new-username-input").val());
+      }
+    }).modal("show");
+  });
   $("#admin-controls").toggle(isAdmin);
   $("#chat-input").prop("disabled", captchaRequired);
   $("#chat-send-btn").prop("disabled", false);
@@ -745,6 +754,19 @@ addMessageHandlers({
   },
   onAdminUserListAdd: (channelId, username, ipAddress) => {
     addUsers([username], [getIpAddress(ipAddress)]);
+  },
+  onUsernameTaken: () => {
+    alert("That username is taken");
+  },
+  onUsernameChange: (oldUsername, newUsername) => {
+    $("#online-users").children().filter((i, user) => user.innerText === oldUsername)[0].innerText = newUsername;
+    if (username === oldUsername) {
+      updateSession("", newUsername);
+      const $changeUsernameButton = $("#change-username-button").prop("disabled", true);
+      setTimeout(() => {
+        $changeUsernameButton.prop("disabled", false);
+      }, common.getUsernameChangeRateLimit());
+    }
   },
   onVmThumbnail: (vmId, thumbnail) => {
     const imageBlob = new Blob([thumbnail], {type: "image/png"});
