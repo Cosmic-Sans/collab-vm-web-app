@@ -11,11 +11,13 @@ let turnInterval = null;
 let voteInterval = null;
 let captchaRequired = false;
 let hasVoted = false;
+let isAdmin = false;
 
 registerUrlRouter(path => {
   const socket = getSocket();
   socket.onSocketDisconnect = () => {
     $("#chat-user").text(username = "");
+    isAdmin = false;
     currentVmId = null;
     showLoading();
   };
@@ -487,6 +489,7 @@ const viewServerList = () => {
 function viewVm() {
   hideEverything();
   $("#vm-view").show();
+  $("#admin-controls").toggle(isAdmin);
   $("#chat-input").prop("disabled", captchaRequired);
   $("#chat-send-btn").prop("disabled", false);
 
@@ -746,11 +749,11 @@ addMessageHandlers({
     $("#login-btn").removeClass("loading");
     $("#login-register-status").text(error).addClass("visible");
   },
-  onLoginSucceeded: (sessionId, username, isAdmin) => {
+  onLoginSucceeded: (sessionId, username, isAdmin2) => {
     $("#login-btn").removeClass("loading");
     updateSession(sessionId, username);
     goBackOrHome();
-    $("#admin-controls").show(isAdmin);
+    isAdmin = isAdmin2;
   },
   onLoginFailed: error => {
     showLoginForm();
