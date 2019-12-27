@@ -468,7 +468,7 @@ const getIpAddress = byteVector => {
 };
 
 const hideEverything = () => {
-  $("#loading, #not-found, #vm-view, #vm-list, #login-register-container, #register-form, #login-form, #vote-alert, #vote-status, #start-vote-button").hide();
+  $("#loading, #not-found, #vm-view, #vm-list, #login-register-container, #register-form, #login-form, #vote-alert, #vote-status, #start-vote-button, #admin-controls").hide();
   $("#captcha-modal").modal("hide");
 };
 const viewServerList = () => {
@@ -746,10 +746,11 @@ addMessageHandlers({
     $("#login-btn").removeClass("loading");
     $("#login-register-status").text(error).addClass("visible");
   },
-  onLoginSucceeded: (sessionId, username) => {
+  onLoginSucceeded: (sessionId, username, isAdmin) => {
     $("#login-btn").removeClass("loading");
     updateSession(sessionId, username);
     goBackOrHome();
+    $("#admin-controls").show(isAdmin);
   },
   onLoginFailed: error => {
     showLoginForm();

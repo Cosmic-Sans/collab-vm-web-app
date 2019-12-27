@@ -765,7 +765,8 @@ struct Deserializer {
             const auto session = response.getSession();
             const auto session_id = session.getSessionId();
             const auto username = session.getUsername();
-            onLoginSucceeded(std::string(reinterpret_cast<const char*>(session_id.begin()), session_id.size()), username);
+            const auto is_admin = session.getIsAdmin();
+            onLoginSucceeded(std::string(reinterpret_cast<const char*>(session_id.begin()), session_id.size()), username, is_admin);
           } else switch (response.getResult()) {
             case CollabVmServerMessage::LoginResponse::LoginResult::INVALID_PASSWORD:
             onLoginFailed("invalid password");
@@ -1242,7 +1243,7 @@ struct Deserializer {
 	virtual void onVmThumbnail(std::uint32_t vm_id, emscripten::val thumbnail) = 0;
 	virtual void onRegisterAccountSucceeded(std::string&& session_id, std::string&& username) = 0;
 	virtual void onRegisterAccountFailed(const std::string error_message) = 0;
-	virtual void onLoginSucceeded(std::string&& session_id, std::string&& username) = 0;
+	virtual void onLoginSucceeded(std::string&& session_id, std::string&& username, bool is_admin) = 0;
 	virtual void onLoginFailed(const std::string error_message) = 0;
 	virtual void onServerConfig(ServerSettingsWrapper&& config) = 0;
 	virtual void onVmCreated(unsigned int vm_id) = 0;
@@ -1288,8 +1289,8 @@ struct DeserializerWrapper : public emscripten::wrapper<Deserializer> {
 		return call<void>("onRegisterAccountFailed", error_message);
 	}
 
-	void onLoginSucceeded(std::string&& session_id, std::string&& username) {
-		return call<void>("onLoginSucceeded", std::move(session_id), std::move(username));
+	void onLoginSucceeded(std::string&& session_id, std::string&& username, bool is_admin) {
+		return call<void>("onLoginSucceeded", std::move(session_id), std::move(username), is_admin);
 	}
 
 	void onLoginFailed(const std::string error_message) {
