@@ -2,6 +2,9 @@ import {registerUrlRouter, setUrl, getPath, getSocket, addMessageHandlers, saveS
 import $ from "jquery";
 import Guacamole from "Guacamole";
 import "chat.css";
+import "keyboard.css";
+import "./submodules/guacamole-client/guacamole/src/main/webapp/app/osk/styles/osk.css";
+import en_us_qwerty_keyboard from "./submodules/guacamole-client/guacamole/src/main/webapp/layouts/en-us-qwerty.json";
 import {fromByteArray as ipFromByteArray} from "ipaddr.js";
 
 let currentVmId = null;
@@ -211,6 +214,26 @@ keyboard.onkeyup = function(keysym) {
   return true;
 };
 window.onblur = keyboard.reset;
+
+const osk = new Guacamole.OnScreenKeyboard(en_us_qwerty_keyboard);
+$("#kbd-keys").append(osk.getElement());
+osk.onkeydown = keysym => {
+  if (hasTurn)
+    guacClient.sendKeyEvent(true, keysym);
+};
+osk.onkeyup = keysym => {
+  if (hasTurn)
+    guacClient.sendKeyEvent(false, keysym);
+};
+
+function activateOSK(enabled) {
+  osk.disabled = !enabled;
+  var keys = $(osk.getElement()).find("div.guac-keyboard-key");
+  if (enabled)
+    keys.removeClass("guac-keyboard-disabled");
+  else
+    keys.addClass("guac-keyboard-disabled");
+}
 
 $("#chat-input").keypress(function(e) {
   const enterKeyCode = 13;
@@ -518,6 +541,20 @@ function viewVm() {
   $("#chat-input").prop("disabled", captchaRequired);
   $("#chat-send-btn").prop("disabled", false);
 
+  $("#osk-btn").click(function() {
+    const kbd = $("#kbd-outer");
+    if (kbd.is(":visible"))
+      kbd.hide("fast");
+    else
+      kbd.show("fast");
+  });
+  activateOSK(false);
+  $(window).off("resize").resize(function() {
+    if (osk)
+      osk.resize($("#kbd-container").width());
+  });
+  osk.resize($("#kbd-container").width());
+
 	$("#start-vote-button").off("click").click(function() {
     if (captchaRequired) {
       showCaptchaModal(() => $("#start-vote-button").click());
@@ -707,6 +744,7 @@ addMessageHandlers({
         $("#status").html("");
       }
     }
+    activateOSK(hasTurn);
   },
   onChatMessage: (channelId, username, message, timestamp) => {
     const chatPanel = $("#chat-panel").get(0);
