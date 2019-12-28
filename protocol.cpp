@@ -935,13 +935,22 @@ struct Deserializer {
         case CollabVmServerMessage::Message::VOTE_STATUS:
         {
           const auto vote_status = message.getVoteStatus().getStatus();
-          if (vote_status.which() == VoteStatus::Status::DISABLED) {
-            onVotesDisabled();
-          } else if (vote_status.which() == VoteStatus::Status::ENABLED) {
-            const auto vote_info = vote_status.getEnabled();
-            onVoteStatus(vote_info.getTimeRemaining(),
-                         vote_info.getYesVoteCount(),
-                         vote_info.getNoVoteCount());
+          switch (vote_status.which()) {
+            case VoteStatus::Status::DISABLED:
+              onVoteDisabled();
+            break;
+            case VoteStatus::Status::IDLE:
+              onVoteIdle();
+            break;
+            case VoteStatus::Status::COOLING_DOWN:
+              onVoteCoolingDown();
+            break;
+            case VoteStatus::Status::IN_PROGRESS:
+              const auto vote_info = vote_status.getInProgress();
+              onVoteStatus(vote_info.getTimeRemaining(),
+                           vote_info.getYesVoteCount(),
+                           vote_info.getNoVoteCount());
+            break;
           }
           break;
         }
@@ -1292,7 +1301,9 @@ struct Deserializer {
   virtual void onCreateInviteResult(std::vector<std::uint8_t>&& id) = 0;
   virtual void onInviteValidationResponse(bool is_valid, std::string&& username) = 0;
 	virtual void onCaptchaRequired(bool required) = 0;
-	virtual void onVotesDisabled() = 0;
+	virtual void onVoteDisabled() = 0;
+	virtual void onVoteIdle() = 0;
+	virtual void onVoteCoolingDown() = 0;
 	virtual void onVoteStatus(std::uint32_t time_remaining, std::uint32_t yes_vote_count, std::uint32_t no_vote_count) = 0;
 	virtual void onVoteResult(bool vote_passed) = 0;
 
@@ -1389,8 +1400,14 @@ struct DeserializerWrapper : public emscripten::wrapper<Deserializer> {
   virtual void onCaptchaRequired(bool required) {
     return call<void>("onCaptchaRequired", required);
   }
-	virtual void onVotesDisabled() {
-    return call<void>("onVotesDisabled");
+	virtual void onVoteDisabled() {
+    return call<void>("onVoteDisabled");
+  }
+	virtual void onVoteIdle() {
+    return call<void>("onVoteIdle");
+  }
+	virtual void onVoteCoolingDown() {
+    return call<void>("onVoteCoolingDown");
   }
 	virtual void onVoteStatus(std::uint32_t time_remaining, std::uint32_t yes_vote_count, std::uint32_t no_vote_count) {
     return call<void>("onVoteStatus", time_remaining, yes_vote_count, no_vote_count);

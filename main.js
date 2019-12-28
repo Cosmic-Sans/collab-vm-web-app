@@ -660,9 +660,18 @@ addMessageHandlers({
       showCaptchaModal();
     }
   },
-  onVotesDisabled: () => {
+  onVoteDisabled: () => {
     hideVotes();
     $("#start-vote-button").hide();
+  },
+  onVoteIdle: () => {
+    hasVoted = false;
+    hideVotes();
+    $("#start-vote-button").show().prop("disabled", false);
+  },
+  onVoteCoolingDown: () => {
+    hideVotes();
+    $("#start-vote-button").show().prop("disabled", true);
   },
   onVoteStatus: (timeRemaining, yesVoteCount, noVoteCount) => {
     hideVotes();
@@ -678,7 +687,6 @@ addMessageHandlers({
     }
     var ms = timeRemaining;
     const voteStatus = () => {
-      ms -= 1000;
       var seconds = Math.floor(ms / 1000);
       if (seconds <= 0) {
         clearInterval(voteInterval);
@@ -689,7 +697,7 @@ addMessageHandlers({
     voteStatus();
     $("#vote-status").show();
 
-    voteInterval = setInterval(voteStatus, 1000);
+    voteInterval = setInterval(() => { ms -= 1000; voteStatus(); }, 1000);
 
     if (!hasVoted) {
       $("#vote-alert").show();
@@ -698,7 +706,6 @@ addMessageHandlers({
   onVoteResult: votePassed => {
     hasVoted = false;
     hideVotes();
-    $("#start-vote-button").show()
   },
   onVmDescription: description =>
     $("#vm-description").text(description),
