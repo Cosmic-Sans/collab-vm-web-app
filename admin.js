@@ -115,6 +115,13 @@ function showVmConfig(vmConfig) {
       socket.sendVmSettings(currentVmId, vmSettings);
     });
 
+  initCheckbox($("#vm-settings :checkbox[name='disallow-guests']"),
+    vmConfig.getDisallowGuests(), function() {
+        const vmSettings = createObject("VmSettings");
+        vmSettings.setDisallowGuests(this.checked);
+        socket.sendVmSettings(currentVmId, vmSettings);
+      });
+
   initCheckbox($("#vm-settings :checkbox[name='turns-enabled']"),
     vmConfig.getTurnsEnabled(), function() {
         const vmSettings = createObject("VmSettings");

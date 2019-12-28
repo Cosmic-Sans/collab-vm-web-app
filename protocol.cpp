@@ -395,6 +395,9 @@ struct VmSettingsWrapper {
             case VmSetting::Setting::SAFE_FOR_WORK:
                 safe_for_work_ = setting.getSafeForWork();
                 break;
+            case VmSetting::Setting::DISALLOW_GUESTS:
+                disallow_guests_ = setting.getDisallowGuests();
+                break;
             }
         }
     }
@@ -481,6 +484,9 @@ struct VmSettingsWrapper {
             break;
             case VmSetting::Setting::SAFE_FOR_WORK:
                 setting.setSafeForWork(safe_for_work_);
+                break;
+            case VmSetting::Setting::DISALLOW_GUESTS:
+                setting.setDisallowGuests(disallow_guests_);
                 break;
             default:
               std::cerr << "unknown setting" << std::endl;
@@ -644,6 +650,13 @@ struct VmSettingsWrapper {
         safe_for_work_ = safe_for_work;
         modified_settings_.emplace(VmSetting::Setting::SAFE_FOR_WORK);
     }
+    bool getDisallowGuests() const {
+        return disallow_guests_;
+    }
+    void setDisallowGuests(bool disallow_guests) {
+        disallow_guests_ = disallow_guests;
+        modified_settings_.emplace(VmSetting::Setting::DISALLOW_GUESTS);
+    }
     private:
         bool auto_start_;
         std::string name_;
@@ -669,6 +682,7 @@ struct VmSettingsWrapper {
         std::set<int> modified_settings_;
         std::vector<GuacamoleParameterWrapper> guacamole_parameters_;
         bool safe_for_work_;
+        bool disallow_guests_;
 };
 
 struct Deserializer {
@@ -803,13 +817,15 @@ struct Deserializer {
         case CollabVmServerMessage::Message::CONNECT_RESPONSE:
         {
           const auto result = message.getConnectResponse().getResult();
-          if (result.which() == 0) {
+          if (result.which() == CollabVmServerMessage::ChannelConnectResponse::Result::SUCCESS) {
             auto success = result.getSuccess();
             onConnect(success.getUsername(), success.getCaptchaRequired());
             for (auto chat_message :
                  success.getChatMessages()) {
               onChatMessage(0, chat_message.getSender(), chat_message.getMessage(), chat_message.getTimestamp());
             }
+          } else if (result.which() == CollabVmServerMessage::ChannelConnectResponse::Result::FAIL) {
+            onConnectFail();
           }
           break;
         }
@@ -1264,6 +1280,7 @@ struct Deserializer {
 	virtual void onGuacInstr(std::string&& instr_name, const emscripten::val& instr) = 0;
   virtual void onChatMessage(std::uint32_t channel_id, std::string&& username, std::string&& message, double timestamp) = 0;
   virtual void onConnect(std::string&& username, bool captcha_required) = 0;
+  virtual void onConnectFail() = 0;
   virtual void onUserList(std::uint32_t channel_id, std::vector<std::string>&& usernames) = 0;
   virtual void onUserListAdd(std::uint32_t channel_id, std::string&& username) = 0;
   virtual void onUserListRemove(std::uint32_t channel_id, std::string&& username) = 0;
@@ -1335,6 +1352,9 @@ struct DeserializerWrapper : public emscripten::wrapper<Deserializer> {
   }
   void onConnect(std::string&& username, bool captcha_required) {
 		return call<void>("onConnect", std::move(username), captcha_required);
+  }
+  virtual void onConnectFail() {
+    return call<void>("onConnectFail");
   }
   virtual void onUserList(std::uint32_t channel_id, std::vector<std::string>&& usernames) {
 		return call<void>("onUserList", channel_id, usernames);
@@ -1800,6 +1820,7 @@ emscripten::class_<ServerSettingsWrapper>("ServerSetting")
 	.function("onAdminUserList", &Deserializer::onAdminUserList, emscripten::pure_virtual())
 	.function("onAdminUserListAdd", &Deserializer::onAdminUserListAdd, emscripten::pure_virtual())
 	.function("onConnect", &Deserializer::onConnect, emscripten::pure_virtual())
+	.function("onConnectFail", &Deserializer::onConnectFail, emscripten::pure_virtual())
 	.function("onVmThumbnail", &Deserializer::onVmThumbnail, emscripten::pure_virtual())
 	.function("onRegisterAccountSucceeded", &Deserializer::onRegisterAccountSucceeded, emscripten::pure_virtual())
 	.function("onRegisterAccountFailed", &Deserializer::onRegisterAccountFailed, emscripten::pure_virtual())
@@ -1888,6 +1909,8 @@ emscripten::class_<VmSettingsWrapper>("VmSettings")
     .function("setGuacamoleParameters", &VmSettingsWrapper::setGuacamoleParameters)
     .function("getSafeForWork", &VmSettingsWrapper::getSafeForWork)
     .function("setSafeForWork", &VmSettingsWrapper::setSafeForWork)
+    .function("getDisallowGuests", &VmSettingsWrapper::getDisallowGuests)
+    .function("setDisallowGuests", &VmSettingsWrapper::setDisallowGuests)
 ;
 }
 

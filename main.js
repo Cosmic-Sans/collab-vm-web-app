@@ -645,6 +645,10 @@ addMessageHandlers({
     $("#chat-box").empty();
     viewVm();
   },
+  onConnectFail: () => {
+    currentVmId = null;
+    goBackOrHome();
+  },
   onCaptchaRequired: captchaRequired2 => {
     captchaRequired = captchaRequired2;
     $("#chat-input").prop("disabled", captchaRequired);
