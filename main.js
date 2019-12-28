@@ -87,7 +87,7 @@ function showLoginForm() {
   } else {
     $("#login-button").off("click").click(function() {
       $("#login-register-status").text("").removeClass("visible");
-      getSocket().sendLoginRequest($("#username-box").val(), $("#password-box").val());
+      getSocket().sendLoginRequest($("#username-box").val(), $("#password-box").val(), "");
       $(this).addClass("loading");
     });
   }
