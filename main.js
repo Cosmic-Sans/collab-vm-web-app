@@ -145,6 +145,7 @@ const CollabVmTunnel = function() {
   };
   this.disconnect = data => {
     this.setState(Guacamole.Tunnel.State.CLOSED);
+    hasTurn = false;
   };
   //this.onerror = () => {};
 };
@@ -285,10 +286,12 @@ $("#resume-turns-btn").click(() => getSocket().resumeTurnTimer());
 $("#login-item").show();
 
 const updateSession = (sessionId, newUsername) => {
-  username = newUsername;
-  $("#chat-user").text(username);
+  if (username !== newUsername) {
+    username = newUsername;
+    $("#chat-user").text(username);
+    isLoggedIn = !!sessionId;
+  }
   saveSessionInfo(sessionId, username);
-  isLoggedIn = !!sessionId;
 };
 
 collabVmTunnel.onstatechange = function(state) {
@@ -529,8 +532,9 @@ const viewServerList = () => {
 
 function viewVm() {
   hideEverything();
+  hasTurn = false;
   $("#vm-view").show();
-  $("#change-username-button").toggle(!isLoggedIn).click(() => {
+  $("#change-username-button").toggle(!isLoggedIn).off("click").click(() => {
     $("#change-username-modal").modal({
       onApprove: () => {
         getSocket().changeUsername($("#new-username-input").val());
@@ -541,7 +545,7 @@ function viewVm() {
   $("#chat-input").prop("disabled", captchaRequired);
   $("#chat-send-btn").prop("disabled", false);
 
-  $("#osk-btn").click(function() {
+  $("#osk-btn").off("click").click(function() {
     const kbd = $("#kbd-outer");
     if (kbd.is(":visible"))
       kbd.hide("fast");
@@ -776,7 +780,7 @@ addMessageHandlers({
     }
   },
   onUserList: (channelId, usernamesVector) => {
-    $("#online-users > *").empty();
+    $("#online-users").children().remove();
     const usernames = Array.from({length: usernamesVector.size()}, (_, i) => usernamesVector.get(i))
     addUsers(usernames);
   },
@@ -789,7 +793,7 @@ addMessageHandlers({
     $("#online-users-count").text(userList.children().length);
   },
   onAdminUserList: (channelId, usernamesVector, ipAddressesVector) => {
-    $("#online-users > *").empty();
+    $("#online-users").children().remove();
     const usernames = Array.from({length: usernamesVector.size()}, (_, i) => usernamesVector.get(i));
     const ipAddresses = Array.from({length: ipAddressesVector.size()}, (_, i) => getIpAddress(ipAddressesVector.get(i)));
     addUsers(usernames, ipAddresses);
@@ -833,8 +837,8 @@ addMessageHandlers({
   onLoginSucceeded: (sessionId, username, isAdmin2) => {
     $("#login-btn").removeClass("loading");
     updateSession(sessionId, username);
-    goBackOrHome();
     isAdmin = isAdmin2;
+    goBackOrHome();
   },
   onLoginFailed: error => {
     showLoginForm();
