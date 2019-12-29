@@ -73,3 +73,13 @@
     font-size: 14px;
     margin-right: 5px;
 }
+
+/* User has turn */
+.item.has-turn {
+    background-color: #CFF2FC;
+}
+
+/* User is waiting for turn */
+.item.waiting-turn {
+    background-color: #FFFFB3;
+}

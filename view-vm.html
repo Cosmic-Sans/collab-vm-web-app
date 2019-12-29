@@ -39,10 +39,10 @@ div#display {
     </div>-->
     <div class="ui centered grid">
       <div class="row">
-        <button class="ui button" type="button" id="osk-btn">Keyboard</button>
-        <button style="display: none;" class="ui button" type="button" id="change-username-button">Change Username</button>
-        <button style="display: none;" class="ui button" type="button" id="start-vote-button">Vote for Reset</button>
-        <button style="display: none;" class="ui button" type="button" id="upload-options-btn">Upload File</button>
+        <button class="ui button" type="button" id="osk-btn"><i class="keyboard icon"></i> Keyboard</button>
+        <button style="display: none;" class="ui button" type="button" id="change-username-button"><i class="user icon"></i> Change Username</button>
+        <button style="display: none;" class="ui button" type="button" id="start-vote-button"><i class="poll icon"></i> Vote for Reset</button>
+        <button style="display: none;" class="ui button" type="button" id="upload-options-btn"><i class="cloud upload icon"></i> Upload File</button>
         <button class="ui button" type="button" id="end-turn-btn"><i class="stop icon"></i>End Turn</button>
         <button class="ui button" type="button" id="mute-button"><i class="volume up icon"></i>Mute</button>
         <div id="file-upload" class="form-inline" style="display: none;">
@@ -68,11 +68,11 @@ div#display {
   </div>
   <div id="vm-description" style="text-align:center">
   </div>
-  <div class="ui grid">
+  <div class="ui grid" style="margin-left: 0rem;">
     <div class="four wide column">
-      <h3 class="ui top attached header">
+      <h4 class="ui top attached header" style="background: #EEEEEE;">
         Users Online: <span id="online-users-count"></span>
-      </h3>
+      </h4>
       <div class="ui attached segment">
           <div id="online-users" class="ui celled list">
           </div>
