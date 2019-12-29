@@ -709,9 +709,19 @@ addMessageHandlers({
   },
   onVmDescription: description =>
     $("#vm-description").text(description),
-  onVmTurnInfo: (usersWaitingVector, timeRemaining, isPaused) => {
-    const usersWaiting = Array.from({length: usersWaitingVector.size()}, (_, i) => usersWaitingVector.get(i))
-    if (usersWaiting[0] === username) {
+  onVmTurnInfo: (usersListVector, timeRemaining, isPaused) => {
+    const usersList = Array.from({length: usersListVector.size()}, (_, i) => usersListVector.get(i));
+    const userWithTurn = usersList[0];
+    const usersWaiting = new Set(usersList.slice(1));
+    for (const user of document.getElementById("online-users").children) {
+      user.classList.remove("has-turn", "waiting-turn");
+      if (userWithTurn === user.innerText) {
+        user.classList.add("has-turn");
+      } else if (usersWaiting.has(user.innerText)) {
+        user.classList.add("waiting-turn");
+      }
+    }
+    if (userWithTurn === username) {
       // The user has control
       hasTurn = true;
       display.className = "focused";
@@ -730,7 +740,7 @@ addMessageHandlers({
             $("#status").html("");
           }
         }, Math.round(timeRemaining/1000)*1000);
-    } else if (usersWaiting.includes(username)) {
+    } else if (usersWaiting.has(username)) {
       // The user is waiting for control
       hasTurn = false;
       display.className = "waiting";
