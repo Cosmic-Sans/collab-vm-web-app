@@ -217,6 +217,12 @@ struct ServerSettingsWrapper {
             case ServerSetting::Setting::UNBAN_IP_COMMAND:
                 unbanIpCommand_ = setting.getUnbanIpCommand();
                 break;
+            case ServerSetting::Setting::MAX_CONNECTIONS_ENABLED:
+                maxConnectionsEnabled_ = setting.getMaxConnectionsEnabled();
+                break;
+            case ServerSetting::Setting::MAX_CONNECTIONS:
+                maxConnections_ = setting.getMaxConnections();
+                break;
             }
         }
     }
@@ -248,6 +254,12 @@ struct ServerSettingsWrapper {
                 break;
             case ServerSetting::Setting::UNBAN_IP_COMMAND:
                                 setting.setUnbanIpCommand(unbanIpCommand_);
+                break;
+            case ServerSetting::Setting::MAX_CONNECTIONS_ENABLED:
+                                setting.setMaxConnectionsEnabled(maxConnectionsEnabled_);
+                break;
+            case ServerSetting::Setting::MAX_CONNECTIONS:
+                                setting.setMaxConnections(maxConnections_);
                 break;
                                 default:
                                 assert(false);
@@ -306,6 +318,20 @@ struct ServerSettingsWrapper {
         unbanIpCommand_ = std::move(unbanIpCommand);
         modified_settings_.emplace(ServerSetting::Setting::UNBAN_IP_COMMAND);
     }
+    bool getMaxConnectionsEnabled() const {
+        return maxConnectionsEnabled_;
+    }
+    void setMaxConnectionsEnabled(bool maxConnectionsEnabled) {
+        maxConnectionsEnabled_ = std::move(maxConnectionsEnabled);
+        modified_settings_.emplace(ServerSetting::Setting::MAX_CONNECTIONS_ENABLED);
+    }
+    std::uint8_t getMaxConnections() const {
+        return maxConnections_;
+    }
+    void setMaxConnections(std::uint8_t&& maxConnections) {
+        maxConnections_ = std::move(maxConnections);
+        modified_settings_.emplace(ServerSetting::Setting::MAX_CONNECTIONS);
+    }
     private:
         bool allowAccountRegistration_;
         bool captchaRequired_;
@@ -316,6 +342,8 @@ struct ServerSettingsWrapper {
         bool allowUserVmRequests_;
         std::string banIpCommand_;
         std::string unbanIpCommand_;
+        bool maxConnectionsEnabled_;
+        std::uint8_t maxConnections_;
         std::set<int> modified_settings_;
 };
 
@@ -1821,6 +1849,10 @@ emscripten::class_<ServerSettingsWrapper>("ServerSetting")
     .function("setBanIpCommand", &ServerSettingsWrapper::setBanIpCommand)
     .function("getUnbanIpCommand", &ServerSettingsWrapper::getUnbanIpCommand)
     .function("setUnbanIpCommand", &ServerSettingsWrapper::setUnbanIpCommand)
+    .function("getMaxConnectionsEnabled", &ServerSettingsWrapper::getMaxConnectionsEnabled)
+    .function("setMaxConnectionsEnabled", &ServerSettingsWrapper::setMaxConnectionsEnabled)
+    .function("getMaxConnections", &ServerSettingsWrapper::getMaxConnections)
+    .function("setMaxConnections", &ServerSettingsWrapper::setMaxConnections)
 ;
 
 	emscripten::class_<Deserializer>("Deserializer")

@@ -515,6 +515,17 @@ function showServerConfig(config) {
   $("#ban-ip-cmd-box").val(config.getBanIpCommand());
   $("#unban-ip-cmd-box").val(config.getUnbanIpCommand());
 
+  $("#max-connections-enabled-checkbox").prop("checked", config.getMaxConnectionsEnabled()).off("change").change(function() {
+    const config = window.serverConfig;
+    config.setMaxConnectionsEnabled(this.checked);
+    getSocket().sendServerConfigModifications(config);
+  });
+  $("#max-connections-box").val(config.getMaxConnections()).off("change").change(function() {
+    const config = window.serverConfig;
+    config.setMaxConnections(+this.value);
+    getSocket().sendServerConfigModifications(config);
+  });
+
   const captcha = config.getCaptcha();
   $("#captchas-enabled-checkbox").prop("checked", captcha.enabled).off("change").change(function() {
     const config = window.serverConfig;
