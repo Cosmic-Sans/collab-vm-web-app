@@ -426,7 +426,8 @@ function copyToClipboard(text) {
  }
 const addUsers = (users, ipAddresses) =>
   $("#online-users-count").text(
-    $("#online-users").append(users.map((user, i) => !ipAddresses ? `<div class='item'>${user}</div>` : $(`<div class='item'>${user}</div>`).append($(
+    $("#online-users").append(users.map((user, i) =>
+      $(`<div class='item'><span class='username'>${user}</span></div>`).append(ipAddresses ? $(
     `<div class="ui dropdown">
       <i class="ellipsis horizontal icon"></i>
       <div class="menu">
@@ -465,7 +466,7 @@ const addUsers = (users, ipAddresses) =>
             break;
         }
       }
-    })))).children().length);
+    }) : null))).children().length);
 
 const relativeTimeFormatter = Intl.RelativeTimeFormat ? new Intl.RelativeTimeFormat() : null;
 const setChatTimestampText = element => {
@@ -822,7 +823,7 @@ addMessageHandlers({
     alert("That username is taken");
   },
   onUsernameChange: (oldUsername, newUsername) => {
-    $("#online-users").children().filter((i, user) => user.innerText === oldUsername)[0].innerText = newUsername;
+    $("#online-users").children().filter((i, user) => user.innerText === oldUsername).children(".username").text(newUsername);
     if (username === oldUsername) {
       updateSession("", newUsername);
       const $changeUsernameButton = $("#change-username-button").prop("disabled", true);
