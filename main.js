@@ -177,6 +177,14 @@ guacClient.getDisplay().getElement().addEventListener("click", () => {
     getSocket().sendTurnRequest();
   }
 });
+
+let pictureInPictureVideo;
+if (document.pictureInPictureEnabled) {
+  pictureInPictureVideo = document.createElement("video");
+  pictureInPictureVideo.srcObject = guacClient.getDisplay().getElement().querySelector("canvas").captureStream();
+  pictureInPictureVideo.muted = true;
+}
+
 const mouse = new ("ontouchstart" in document ?
               Guacamole.Mouse.Touchscreen :
               Guacamole.Mouse)(guacClient.getDisplay().getElement());
@@ -541,6 +549,12 @@ function viewVm() {
         getSocket().changeUsername($("#new-username-input").val());
       }
     }).modal("show");
+  });
+  $("#picture-in-picture-button").toggle(
+      !!(pictureInPictureVideo && pictureInPictureVideo.requestPictureInPicture))
+    .off("click").click(() => {
+      pictureInPictureVideo.play();
+      pictureInPictureVideo.requestPictureInPicture();
   });
   $("#admin-controls").toggle(isAdmin);
   $("#chat-input").prop("disabled", captchaRequired);
