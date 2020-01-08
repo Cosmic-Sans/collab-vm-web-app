@@ -850,7 +850,7 @@ struct Deserializer {
             onConnect(success.getUsername(), success.getCaptchaRequired());
             for (auto chat_message :
                  success.getChatMessages()) {
-              onChatMessage(0, chat_message.getSender(), chat_message.getMessage(), chat_message.getTimestamp());
+              onChatMessage(0, chat_message.getSender(), static_cast<std::uint8_t>(chat_message.getUserType()), chat_message.getMessage(), chat_message.getTimestamp());
             }
           } else if (result.which() == CollabVmServerMessage::ChannelConnectResponse::Result::FAIL) {
             onConnectFail();
@@ -862,6 +862,7 @@ struct Deserializer {
           auto chat_message = message.getChatMessage();
           onChatMessage(chat_message.getChannel(),
                         chat_message.getMessage().getSender(),
+                        static_cast<std::uint8_t>(chat_message.getMessage().getUserType()),
                         chat_message.getMessage().getMessage(),
                         chat_message.getMessage().getTimestamp());
           break;
@@ -876,13 +877,14 @@ struct Deserializer {
               if (!chat_message.getMessage().size()) {
                 break;
               }
-              onChatMessage(channel_id, chat_message.getSender(), chat_message.getMessage(), chat_message.getTimestamp());
+              onChatMessage(channel_id, chat_message.getSender(), static_cast<std::uint8_t>(chat_message.getUserType()), chat_message.getMessage(), chat_message.getTimestamp());
             }
           } else {
             auto i = first_message_index;
             do {
               onChatMessage(channel_id,
                             chat_messages.getMessages()[i].getSender(),
+                            static_cast<std::uint8_t>(chat_messages.getMessages()[i].getUserType()),
                             chat_messages.getMessages()[i].getMessage(),
                             chat_messages.getMessages()[i].getTimestamp());
               i = (i + 1) % chat_messages.getMessages().size();
@@ -893,7 +895,7 @@ struct Deserializer {
         case CollabVmServerMessage::Message::USER_LIST_ADD:
         {
           const auto added_user = message.getUserListAdd();
-          onUserListAdd(added_user.getChannel(), added_user.getUsername());
+          onUserListAdd(added_user.getChannel(), added_user.getUsername(), static_cast<std::uint8_t>(added_user.getUserType()));
           break;
         }
         case CollabVmServerMessage::Message::USER_LIST_REMOVE:
@@ -906,26 +908,28 @@ struct Deserializer {
         {
           const auto update = message.getAdminUserListAdd();
           const auto added_user = update.getUser();
-          onAdminUserListAdd(update.getChannel(), added_user.getUsername(), convertIpAddressToBytes(added_user.getIpAddress()));
+          onAdminUserListAdd(update.getChannel(), added_user.getUsername(), static_cast<std::uint8_t>(added_user.getUserType()), convertIpAddressToBytes(added_user.getIpAddress()));
           break;
         }
         case CollabVmServerMessage::Message::USER_LIST:
         {
           const auto user_list = message.getUserList();
           auto usernames = to_vector<std::string>(user_list.getUsers(), [](auto user){ return user.getUsername(); });
-          onUserList(user_list.getChannel(), std::move(usernames));
+          auto user_types = to_vector<std::uint8_t>(user_list.getUsers(), [](auto user){ return static_cast<std::uint8_t>(user.getUserType()); });
+          onUserList(user_list.getChannel(), std::move(usernames), std::move(user_types));
         }
         break;
         case CollabVmServerMessage::Message::ADMIN_USER_LIST:
         {
           const auto user_list = message.getAdminUserList();
           auto usernames = to_vector<std::string>(user_list.getUsers(), [](auto user){ return user.getUsername(); });
+          auto user_types = to_vector<std::uint8_t>(user_list.getUsers(), [](auto user){ return static_cast<std::uint8_t>(user.getUserType()); });
           auto ip_addresses = to_vector<std::vector<std::uint8_t>>(
             user_list.getUsers(),
             [](auto user){
               return convertIpAddressToBytes(user.getIpAddress());
             });
-          onAdminUserList(user_list.getChannel(), std::move(usernames), std::move(ip_addresses));
+          onAdminUserList(user_list.getChannel(), std::move(usernames),std::move(user_types), std::move(ip_addresses));
         }
         break;
         case CollabVmServerMessage::Message::USERNAME_TAKEN:
@@ -1315,14 +1319,14 @@ struct Deserializer {
 	virtual void onVmConfig(VmSettingsWrapper&& config) = 0;
 	virtual void onAdminVms(const std::vector<AdminVmInfoWrapper>& vms) = 0;
 	virtual void onGuacInstr(std::string&& instr_name, const emscripten::val& instr) = 0;
-  virtual void onChatMessage(std::uint32_t channel_id, std::string&& username, std::string&& message, double timestamp) = 0;
+  virtual void onChatMessage(std::uint32_t channel_id, std::string&& username, std::uint8_t user_type, std::string&& message, double timestamp) = 0;
   virtual void onConnect(std::string&& username, bool captcha_required) = 0;
   virtual void onConnectFail() = 0;
-  virtual void onUserList(std::uint32_t channel_id, std::vector<std::string>&& usernames) = 0;
-  virtual void onUserListAdd(std::uint32_t channel_id, std::string&& username) = 0;
+  virtual void onUserList(std::uint32_t channel_id, std::vector<std::string>&& usernames, std::vector<std::uint8_t>&& user_types) = 0;
+  virtual void onUserListAdd(std::uint32_t channel_id, std::string&& username, std::uint8_t user_type) = 0;
   virtual void onUserListRemove(std::uint32_t channel_id, std::string&& username) = 0;
-  virtual void onAdminUserList(std::uint32_t channel_id, std::vector<std::string>&& usernames, std::vector<std::vector<std::uint8_t>>&& ip_addresses) = 0;
-  virtual void onAdminUserListAdd(std::uint32_t channel_id, std::string&& username, std::vector<std::uint8_t> ip_address) = 0;
+  virtual void onAdminUserList(std::uint32_t channel_id, std::vector<std::string>&& usernames, std::vector<std::uint8_t>&& user_types, std::vector<std::vector<std::uint8_t>>&& ip_addresses) = 0;
+  virtual void onAdminUserListAdd(std::uint32_t channel_id, std::string&& username, std::uint8_t user_type, std::vector<std::uint8_t> ip_address) = 0;
   virtual void onUsernameTaken() = 0;
   virtual void onUsernameChange(std::string&& oldUsername, std::string&& newUsername) = 0;
   virtual void onVmDescription(std::string&& username) = 0;
@@ -1386,8 +1390,8 @@ struct DeserializerWrapper : public emscripten::wrapper<Deserializer> {
 	void onGuacInstr(std::string&& instr_name, const emscripten::val& instr) {
 		return call<void>("onGuacInstr", instr_name, instr);
 	}
-  void onChatMessage(std::uint32_t channel_id, std::string&& username, std::string&& message, double timestamp) {
-		return call<void>("onChatMessage", channel_id, std::move(username), std::move(message), timestamp);
+  void onChatMessage(std::uint32_t channel_id, std::string&& username, std::uint8_t user_type, std::string&& message, double timestamp) {
+		return call<void>("onChatMessage", channel_id, std::move(username), user_type, std::move(message), timestamp);
   }
   void onConnect(std::string&& username, bool captcha_required) {
 		return call<void>("onConnect", std::move(username), captcha_required);
@@ -1395,20 +1399,20 @@ struct DeserializerWrapper : public emscripten::wrapper<Deserializer> {
   virtual void onConnectFail() {
     return call<void>("onConnectFail");
   }
-  virtual void onUserList(std::uint32_t channel_id, std::vector<std::string>&& usernames) {
-		return call<void>("onUserList", channel_id, usernames);
+  virtual void onUserList(std::uint32_t channel_id, std::vector<std::string>&& usernames, std::vector<std::uint8_t>&& user_types) {
+		return call<void>("onUserList", channel_id, usernames, user_types);
   }
-  virtual void onUserListAdd(std::uint32_t channel_id, std::string&& username) {
-		return call<void>("onUserListAdd", channel_id, username);
+  virtual void onUserListAdd(std::uint32_t channel_id, std::string&& username, std::uint8_t user_type) {
+		return call<void>("onUserListAdd", channel_id, username, user_type);
   }
   virtual void onUserListRemove(std::uint32_t channel_id, std::string&& username) {
 		return call<void>("onUserListRemove", channel_id, username);
   }
-  virtual void onAdminUserList(std::uint32_t channel_id, std::vector<std::string>&& usernames, std::vector<std::vector<std::uint8_t>>&& ip_addresses) {
-		return call<void>("onAdminUserList", channel_id, usernames, ip_addresses);
+  virtual void onAdminUserList(std::uint32_t channel_id, std::vector<std::string>&& usernames, std::vector<std::uint8_t>&& user_types, std::vector<std::vector<std::uint8_t>>&& ip_addresses) {
+		return call<void>("onAdminUserList", channel_id, usernames, user_types, ip_addresses);
   }
-  virtual void onAdminUserListAdd(std::uint32_t channel_id, std::string&& username, std::vector<std::uint8_t> ip_address) {
-		return call<void>("onAdminUserListAdd", channel_id, username, ip_address);
+  virtual void onAdminUserListAdd(std::uint32_t channel_id, std::string&& username, std::uint8_t user_type, std::vector<std::uint8_t> ip_address) {
+		return call<void>("onAdminUserListAdd", channel_id, username, user_type, ip_address);
   }
   virtual void onUsernameTaken() {
     return call<void>("onUsernameTaken");

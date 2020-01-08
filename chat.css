@@ -83,3 +83,22 @@
 .item.waiting-turn {
     background-color: #FFFFB3;
 }
+
+.guest.username {
+  color: gray;
+}
+
+.registered.username {
+  color: initial;
+}
+
+.admin.username {
+  color: firebrick;
+}
+
+#display.focused {
+  box-shadow: 0px 0px 9px 0px rgba(45, 213, 255, 0.75);
+}
+#display.waiting {
+  box-shadow: 0px 0px 9px 0px rgba(242, 255, 63, 0.75);
+}

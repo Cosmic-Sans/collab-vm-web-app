@@ -424,10 +424,10 @@ function copyToClipboard(text) {
     document.body.removeChild(input)
     return result;
  }
-const addUsers = (users, ipAddresses) =>
+const addUsers = (users, userTypes, ipAddresses) =>
   $("#online-users-count").text(
     $("#online-users").append(users.map((user, i) =>
-      $(`<div class='item'><span class='username'>${user}</span></div>`).append(ipAddresses ? $(
+      $(`<div class='item'><span class='username ${["guest", "registered", "admin"][userTypes[i]]}'>${user}</span></div>`).append(ipAddresses ? $(
     `<div class="ui dropdown">
       <i class="ellipsis horizontal icon"></i>
       <div class="menu">
@@ -772,12 +772,12 @@ addMessageHandlers({
     }
     activateOSK(hasTurn);
   },
-  onChatMessage: (channelId, username, message, timestamp) => {
+  onChatMessage: (channelId, username, userType, message, timestamp) => {
     const chatPanel = $("#chat-panel").get(0);
     const atBottom = chatPanel.offsetHeight + chatPanel.scrollTop >= chatPanel.scrollHeight;
     var chatElement = $('<li><div></div></li>');
     if (username) {
-      chatElement.children().first().text(message).prepend($('<span class="username"></span>').text(username), '<span class="spacer">\u25B8</span>');
+      chatElement.children().first().text(message).prepend($(`<span class="username ${["guest", "registered", "admin"][userType]}"></span>`).text(username), '<span class="spacer">\u25B8</span>');
     } else {
       chatElement.children().first().addClass("server-message").text(message);
     }
@@ -797,27 +797,29 @@ addMessageHandlers({
       chatPanel.scrollTop = chatPanel.scrollHeight;
     }
   },
-  onUserList: (channelId, usernamesVector) => {
+  onUserList: (channelId, usernamesVector, userTypesVector) => {
     $("#online-users").children().remove();
-    const usernames = Array.from({length: usernamesVector.size()}, (_, i) => usernamesVector.get(i))
-    addUsers(usernames);
+    const usernames = Array.from({length: usernamesVector.size()}, (_, i) => usernamesVector.get(i));
+    const userTypes = Array.from({length: userTypesVector.size()}, (_, i) => userTypesVector.get(i));
+    addUsers(usernames, userTypes);
   },
-  onUserListAdd: (channelId, username) => {
-    addUsers([username]);
+  onUserListAdd: (channelId, username, userType) => {
+    addUsers([username], [userType]);
   },
   onUserListRemove: (channelId, username) => {
     const userList = $("#online-users");
     userList.children().filter((i, user) => user.innerText === username).remove();
     $("#online-users-count").text(userList.children().length);
   },
-  onAdminUserList: (channelId, usernamesVector, ipAddressesVector) => {
+  onAdminUserList: (channelId, usernamesVector, userTypesVector, ipAddressesVector) => {
     $("#online-users").children().remove();
     const usernames = Array.from({length: usernamesVector.size()}, (_, i) => usernamesVector.get(i));
     const ipAddresses = Array.from({length: ipAddressesVector.size()}, (_, i) => getIpAddress(ipAddressesVector.get(i)));
-    addUsers(usernames, ipAddresses);
+    const userTypes = Array.from({length: userTypesVector.size()}, (_, i) => userTypesVector.get(i));
+    addUsers(usernames, userTypes, ipAddresses);
   },
-  onAdminUserListAdd: (channelId, username, ipAddress) => {
-    addUsers([username], [getIpAddress(ipAddress)]);
+  onAdminUserListAdd: (channelId, username, userType, ipAddress) => {
+    addUsers([username], [userType], [getIpAddress(ipAddress)]);
   },
   onUsernameTaken: () => {
     alert("That username is taken");
