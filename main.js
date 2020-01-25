@@ -516,9 +516,10 @@ function waitingTimer(callback, ms, completion) {
 
 const getIpAddress = byteVector => {
 	const ipByteArray = Array.from({length: byteVector.size()}, (_, i) => byteVector.get(i));
+	const ip = ipFromByteArray(ipByteArray);
 	return {
 			byteVector: byteVector,
-			string: ipFromByteArray(ipByteArray).toString()
+			string: (ip.isIPv4MappedAddress() ? ip.toIPv4Address() : ip).toString()
 		};
 };
 
