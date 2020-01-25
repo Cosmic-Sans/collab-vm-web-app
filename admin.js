@@ -247,17 +247,24 @@ function showVmConfig(vmConfig) {
   // The table must be redrawn after its parent becomes visible
   guacTable.redraw();
 }
-
+let vmsList;
 let currentVmId;
 addMessageHandlers({
   onVmCreated: vmId => {
     currentVmId = vmId;
     showVmConfig(createObject("VmSettings"));
   },
-  onAdminVms: vmVector => {
+  onAdminVms: async vmVector => {
     const vms = Array.from(
-      {length: vmVector.size()}, (_, i) => vmVector.get(i));
-    const vmsList = new Tabulator("#vm-list", {
+      {length: vmVector.size()}, (_, i) => vmVector.get(i))
+      .map(vm => Object.assign(vm, {status: ["Stopped", "Connecting", "Running"][vm.status]}));
+    if (vmsList) {
+      const selectedIds = vmsList.getSelectedData().map(vm => vm.id);
+      await vmsList.replaceData(vms);
+      vmsList.selectRow(selectedIds);
+      return;
+    }
+    vmsList = new Tabulator("#vm-list", {
       layout: "fitColumns",
       placeholder: "No VMs",
       columns: [{title: "Name", field: "name"},
