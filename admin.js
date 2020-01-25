@@ -122,6 +122,13 @@ function showVmConfig(vmConfig) {
         socket.sendVmSettings(currentVmId, vmSettings);
       });
 
+  initCheckbox($("#vm-settings :checkbox[name='recordings-enabled']"),
+    vmConfig.getRecordingsEnabled(), function() {
+        const vmSettings = createObject("VmSettings");
+        vmSettings.setRecordingsEnabled(this.checked);
+        socket.sendVmSettings(currentVmId, vmSettings);
+      });
+
   initCheckbox($("#vm-settings :checkbox[name='turns-enabled']"),
     vmConfig.getTurnsEnabled(), function() {
         const vmSettings = createObject("VmSettings");
@@ -276,6 +283,27 @@ addMessageHandlers({
         $("#restart-vm-button").off("click").click(() => {
           getSocket().sendRestartVmsRequest(vmIds);
         });
+        $("#view-recordings-vm-button")
+          .prop("disabled", data.length !== 1)
+          .off("click").click(() => {
+            const vmId = data[0].id;
+            $("#recordings-preview-modal").modal("show");
+            $("#recordings-preview-go-button").off("click").removeClass("loading").click(({currentTarget}) => {
+              const $this = $(currentTarget);
+              if ($this.hasClass("loading")) {
+                return;
+              }
+              $this.addClass("loading");
+              getSocket().sendRecordingPreviewRequest(vmId, $("#recordings-preview-start-date").calendar("get date").getTime(), $("#recordings-preview-end-date").calendar("get date").getTime(), +$("#recordings-preview-time-interval").val() * 1000, 250, 250);
+              $("#recordings-previews").empty();
+            });
+            $("#recordings-preview-start-date").calendar({
+              endCalendar: $("#recordings-preview-end-date")
+            });
+            $("#recordings-preview-end-date").calendar({
+              startCalendar: $("#recordings-preview-start-date")
+            });
+          });
       }
     });
   },
@@ -326,6 +354,20 @@ addMessageHandlers({
     $("#user-invite-modal-link").attr("href", link).text(link);
     $("#user-invite-modal").modal("show");
   },
+  onRecordingPreview: (timestamp, vmId, pngBytes) => {
+    const imageBlob = new Blob([pngBytes], {type: "image/png"});
+    const imageUrl = URL.createObjectURL(imageBlob);
+    const image = new Image();
+    image.src = imageUrl;
+    image.onload = image.onerror = () => URL.revokeObjectURL(imageUrl);
+    $("#recordings-previews").append(
+      $("<div class='ui card'>")
+        .popup({title: new Date(timestamp).toLocaleString()})
+        .append(image));
+  },
+  onRecordingPlaybackResult: result => {
+    $("#recordings-preview-go-button").removeClass("loading");
+  }
 });
 
 let twoFactorToken;
@@ -523,6 +565,32 @@ function showServerConfig(config) {
   $("#max-connections-box").val(config.getMaxConnections()).off("change").change(function() {
     const config = window.serverConfig;
     config.setMaxConnections(+this.value);
+    getSocket().sendServerConfigModifications(config);
+  });
+  const recordingConfig = config.getRecordings();
+  $("#recordings-keyframe-interval-box").val(recordingConfig.keyframeInterval).off("change").change(function() {
+    const config = window.serverConfig;
+    config.setRecordingKeyframeInterval(+this.value);
+    getSocket().sendServerConfigModifications(config);
+  });
+  $("#recordings-file-duration-box").val(recordingConfig.fileDuration).off("change").change(function() {
+    const config = window.serverConfig;
+    config.setRecordingFileDuration(+this.value);
+    getSocket().sendServerConfigModifications(config);
+  });
+  $("#recordings-capture-display-checkbox").prop("checked", recordingConfig.captureDisplay).off("change").change(function() {
+    const config = window.serverConfig;
+    config.setRecordings(Object.assign(config.getRecordings(), {captureDisplay: this.checked}));
+    getSocket().sendServerConfigModifications(config);
+  });
+  $("#recordings-capture-audio-checkbox").prop("checked", recordingConfig.captureAudio).off("change").change(function() {
+    const config = window.serverConfig;
+    config.setRecordings(Object.assign(config.getRecordings(), {captureAudio: this.checked}));
+    getSocket().sendServerConfigModifications(config);
+  });
+  $("#recordings-capture-input-checkbox").prop("checked", recordingConfig.captureInput).off("change").change(function() {
+    const config = window.serverConfig;
+    config.setRecordings(Object.assign(config.getRecordings(), {captureInput: this.checked}));
     getSocket().sendServerConfigModifications(config);
   });
 

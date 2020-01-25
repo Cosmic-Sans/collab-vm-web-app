@@ -190,6 +190,46 @@ private:
         std::string validJSONVariableName_;
 };
 
+struct RecordingsWrapper {
+        RecordingsWrapper() {}
+        RecordingsWrapper(ServerSetting::Recordings::Reader recordings) {
+          keyframeInterval_ = recordings.getKeyframeInterval();
+          fileDuration_ = recordings.getFileDuration();
+          captureDisplay_ = recordings.getCaptureDisplay();
+          captureAudio_ = recordings.getCaptureAudio();
+          captureInput_ = recordings.getCaptureInput();
+        }
+
+        std::uint32_t getKeyframeInterval() const { return keyframeInterval_; }
+        void setKeyframeInterval(std::uint32_t&& keyframeInterval) { keyframeInterval_ = std::forward<std::uint32_t>(keyframeInterval); }
+
+        std::uint32_t getFileDuration() const { return fileDuration_; }
+        void setFileDuration(std::uint32_t&& fileDuration) { fileDuration_ = std::forward<std::uint32_t>(fileDuration); }
+
+        bool getCaptureDisplay() const { return captureDisplay_; }
+        void setCaptureDisplay(bool&& captureDisplay) { captureDisplay_ = std::forward<bool>(captureDisplay); }
+
+        bool getCaptureAudio() const { return captureAudio_; }
+        void setCaptureAudio(bool&& captureAudio) { captureAudio_ = std::forward<bool>(captureAudio); }
+
+        bool getCaptureInput() const { return captureInput_; }
+        void setCaptureInput(bool&& captureInput) { captureInput_ = std::forward<bool>(captureInput); }
+
+        void serialize(ServerSetting::Recordings::Builder builder) {
+          builder.setKeyframeInterval(keyframeInterval_);
+          builder.setFileDuration(fileDuration_);
+          builder.setCaptureDisplay(captureDisplay_);
+          builder.setCaptureAudio(captureAudio_);
+          builder.setCaptureInput(captureInput_);
+        }
+private:
+        std::uint32_t keyframeInterval_;
+        std::uint32_t fileDuration_;
+        bool captureDisplay_;
+        bool captureAudio_;
+        bool captureInput_;
+};
+
 struct ServerSettingsWrapper {
     ServerSettingsWrapper(){}
     ServerSettingsWrapper(capnp::List<ServerSetting>::Reader settings) {
@@ -222,6 +262,9 @@ struct ServerSettingsWrapper {
                 break;
             case ServerSetting::Setting::MAX_CONNECTIONS:
                 maxConnections_ = setting.getMaxConnections();
+                break;
+            case ServerSetting::Setting::RECORDINGS:
+                recordings_ = RecordingsWrapper(setting.getRecordings());
                 break;
             }
         }
@@ -260,6 +303,9 @@ struct ServerSettingsWrapper {
                 break;
             case ServerSetting::Setting::MAX_CONNECTIONS:
                                 setting.setMaxConnections(maxConnections_);
+                break;
+            case ServerSetting::Setting::RECORDINGS:
+                                recordings_.serialize(setting.initRecordings());
                 break;
                                 default:
                                 assert(false);
@@ -332,6 +378,13 @@ struct ServerSettingsWrapper {
         maxConnections_ = std::move(maxConnections);
         modified_settings_.emplace(ServerSetting::Setting::MAX_CONNECTIONS);
     }
+    RecordingsWrapper getRecordings() const {
+        return recordings_;
+    }
+    void setRecordings(RecordingsWrapper&& recordings) {
+        recordings_ = std::forward<RecordingsWrapper>(recordings);
+        modified_settings_.emplace(ServerSetting::Setting::RECORDINGS);
+    }
     private:
         bool allowAccountRegistration_;
         bool captchaRequired_;
@@ -344,6 +397,7 @@ struct ServerSettingsWrapper {
         std::string unbanIpCommand_;
         bool maxConnectionsEnabled_;
         std::uint8_t maxConnections_;
+        RecordingsWrapper recordings_;
         std::set<int> modified_settings_;
 };
 
@@ -425,6 +479,9 @@ struct VmSettingsWrapper {
                 break;
             case VmSetting::Setting::DISALLOW_GUESTS:
                 disallow_guests_ = setting.getDisallowGuests();
+                break;
+            case VmSetting::Setting::RECORDINGS_ENABLED:
+                recordings_enabled_ = setting.getRecordingsEnabled();
                 break;
             }
         }
@@ -515,6 +572,9 @@ struct VmSettingsWrapper {
                 break;
             case VmSetting::Setting::DISALLOW_GUESTS:
                 setting.setDisallowGuests(disallow_guests_);
+                break;
+            case VmSetting::Setting::RECORDINGS_ENABLED:
+                setting.setRecordingsEnabled(recordings_enabled_);
                 break;
             default:
               std::cerr << "unknown setting" << std::endl;
@@ -685,6 +745,13 @@ struct VmSettingsWrapper {
         disallow_guests_ = disallow_guests;
         modified_settings_.emplace(VmSetting::Setting::DISALLOW_GUESTS);
     }
+    bool getRecordingsEnabled() const {
+        return recordings_enabled_;
+    }
+    void setRecordingsEnabled(bool recordings_enabled) {
+        recordings_enabled_ = recordings_enabled;
+        modified_settings_.emplace(VmSetting::Setting::RECORDINGS_ENABLED);
+    }
     private:
         bool auto_start_;
         std::string name_;
@@ -711,6 +778,7 @@ struct VmSettingsWrapper {
         std::vector<GuacamoleParameterWrapper> guacamole_parameters_;
         bool safe_for_work_;
         bool disallow_guests_;
+        bool recordings_enabled_;
 };
 
 struct Deserializer {
@@ -990,6 +1058,25 @@ struct Deserializer {
         {
           const auto vote_passed = message.getVoteResult();
           onVoteResult(vote_passed);
+          break;
+        }
+        case CollabVmServerMessage::Message::RECORDING_PLAYBACK_PREVIEW:
+        {
+          const auto preview = message.getRecordingPlaybackPreview();
+          const auto thumbnail = preview.getVmThumbnail();
+          const auto png_bytes = thumbnail.getPngBytes();
+          onRecordingPreview(
+              preview.getTimestamp(),
+              thumbnail.getId(),
+              emscripten::val(emscripten::typed_memory_view(
+                png_bytes.size(),
+                png_bytes.begin())
+                ));
+          break;
+        }
+        case CollabVmServerMessage::Message::RECORDING_PLAYBACK_RESULT:
+        {
+          onRecordingPlaybackResult(message.getRecordingPlaybackResult());
           break;
         }
       }
@@ -1338,6 +1425,8 @@ struct Deserializer {
 	virtual void onVoteCoolingDown() = 0;
 	virtual void onVoteStatus(std::uint32_t time_remaining, std::uint32_t yes_vote_count, std::uint32_t no_vote_count) = 0;
 	virtual void onVoteResult(bool vote_passed) = 0;
+	virtual void onRecordingPreview(double timestamp, std::uint32_t vm_id, emscripten::val png_bytes) = 0;
+	virtual void onRecordingPlaybackResult(bool result) = 0;
 
   virtual ~Deserializer() = default;
 };
@@ -1446,6 +1535,12 @@ struct DeserializerWrapper : public emscripten::wrapper<Deserializer> {
   }
   virtual void onVoteResult(bool vote_passed) {
     return call<void>("onVoteResult", vote_passed);
+  }
+  virtual void onRecordingPreview(double timestamp, std::uint32_t vm_id, emscripten::val png_bytes) {
+    return call<void>("onRecordingPreview", timestamp, vm_id, png_bytes);
+  }
+  virtual void onRecordingPlaybackResult(bool result) {
+    return call<void>("onRecordingPlaybackResult", result);
   }
 };
 
@@ -1756,6 +1851,18 @@ const auto byte_array = array.asBytes();
 		messageReady(message_builder);
 	}
 
+  void sendRecordingPreviewRequest(std::uint32_t vm_id, double start_time, double stop_time, std::uint32_t time_interval, std::uint32_t width, std::uint32_t height) {
+    capnp::MallocMessageBuilder message_builder;
+    auto request = message_builder.initRoot<CollabVmClientMessage::Message>().initRecordingPreviewRequest();
+    request.setVmId(vm_id);
+    request.setStartTime(start_time);
+    request.setStopTime(stop_time);
+    request.setTimeInterval(time_interval);
+    request.setWidth(width);
+    request.setHeight(height);
+    messageReady(message_builder);
+  }
+
 	virtual void onMessageReady(const emscripten::val& message) = 0;
 
   virtual ~Serializer() = default;
@@ -1838,6 +1945,14 @@ emscripten::value_object<CaptchaWrapper>("Captcha")
     .field("validJSONVariableName", &CaptchaWrapper::getValidJSONVariableName, &CaptchaWrapper::setValidJSONVariableName)
 ;
 
+emscripten::value_object<RecordingsWrapper>("Recordings")
+    .field("keyframeInterval", &RecordingsWrapper::getKeyframeInterval, &RecordingsWrapper::setKeyframeInterval)
+    .field("fileDuration", &RecordingsWrapper::getFileDuration, &RecordingsWrapper::setFileDuration)
+    .field("captureDisplay", &RecordingsWrapper::getCaptureDisplay, &RecordingsWrapper::setCaptureDisplay)
+    .field("captureAudio", &RecordingsWrapper::getCaptureAudio, &RecordingsWrapper::setCaptureAudio)
+    .field("captureInput", &RecordingsWrapper::getCaptureInput, &RecordingsWrapper::setCaptureInput)
+;
+
 emscripten::class_<ServerSettingsWrapper>("ServerSetting")
     .function("getAllowAccountRegistration", &ServerSettingsWrapper::getAllowAccountRegistration)
     .function("setAllowAccountRegistration", &ServerSettingsWrapper::setAllowAccountRegistration)
@@ -1857,6 +1972,8 @@ emscripten::class_<ServerSettingsWrapper>("ServerSetting")
     .function("setMaxConnectionsEnabled", &ServerSettingsWrapper::setMaxConnectionsEnabled)
     .function("getMaxConnections", &ServerSettingsWrapper::getMaxConnections)
     .function("setMaxConnections", &ServerSettingsWrapper::setMaxConnections)
+    .function("getRecordings", &ServerSettingsWrapper::getRecordings)
+    .function("setRecordings", &ServerSettingsWrapper::setRecordings)
 ;
 
 	emscripten::class_<Deserializer>("Deserializer")
@@ -1910,6 +2027,7 @@ emscripten::class_<ServerSettingsWrapper>("ServerSetting")
 	.function("createUserInvite", &Serializer::createUserInvite)
 	.function("validateInvite", &Serializer::validateInvite)
 	.function("sendCaptchaCompleted", &Serializer::sendCaptchaCompleted)
+	.function("sendRecordingPreviewRequest", &Serializer::sendRecordingPreviewRequest)
 	.allow_subclass<SerializerWrapper>("SerializerWrapper")
 	;
 }
@@ -1964,6 +2082,8 @@ emscripten::class_<VmSettingsWrapper>("VmSettings")
     .function("setSafeForWork", &VmSettingsWrapper::setSafeForWork)
     .function("getDisallowGuests", &VmSettingsWrapper::getDisallowGuests)
     .function("setDisallowGuests", &VmSettingsWrapper::setDisallowGuests)
+    .function("getRecordingsEnabled", &VmSettingsWrapper::getRecordingsEnabled)
+    .function("setRecordingsEnabled", &VmSettingsWrapper::setRecordingsEnabled)
 ;
 }
 

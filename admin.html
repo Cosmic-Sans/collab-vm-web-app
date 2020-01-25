@@ -122,6 +122,84 @@
             <label>Require captcha before user interaction</label>
           </div>
         </div>
+        <div class="ui form segment">
+          <h4 class="ui dividing header">Recordings</h4>
+          <div class="field">
+            <label>Keyframe Interval (seconds)</label>
+            <input id="recordings-keyframe-interval-box" type="number" placeholder="Recording Keyframe Interval">
+          </div>
+          <div class="field">
+            <label>File Duration (minutes)</label>
+            <input id="recordings-file-duration-box" type="number" placeholder="Recording File Duration">
+          </div>
+          <div class="inline fields">
+            <div class="field">
+              <div class="ui checkbox">
+                <input type="checkbox" id="recordings-capture-display-checkbox">
+                <label>Screen</label>
+              </div>
+            </div>
+            <div class="field">
+              <div class="ui checkbox">
+                <input type="checkbox" id="recordings-capture-audio-checkbox">
+                <label>Audio</label>
+              </div>
+            </div>
+            <div class="field">
+              <div class="ui checkbox">
+                <input type="checkbox" id="recordings-capture-input-checkbox">
+                <label>Input</label>
+              </div>
+            </div>
+            <div class="field">
+              <div class="ui checkbox">
+                <input type="checkbox" checked disabled>
+                <label>Chat &amp; Users List</label>
+              </div>
+            </div>
+          </div>
+          <div class="ui modal" id="recordings-preview-modal">
+            <i class="close icon"></i>
+            <div class="header">
+              Recordings
+            </div>
+            <div class="scrolling content">
+              <div class="ui form">
+                <div class="inline fields">
+                  <div class="field">
+                    <label>Start date</label>
+                    <div class="ui calendar" id="recordings-preview-start-date">
+                      <div class="ui input left icon">
+                        <i class="calendar icon"></i>
+                        <input type="text" placeholder="Start">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label>End date</label>
+                    <div class="ui calendar" id="recordings-preview-end-date">
+                      <div class="ui input left icon">
+                        <i class="calendar icon"></i>
+                        <input type="text" placeholder="End">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label>Time Interval</label>
+                    <input id="recordings-preview-time-interval" type="number" placeholder="Time Interval (seconds)">
+                  </div>
+                  <div class="field">
+                    <button class="ui positive button" type="button" id="recordings-preview-go-button">
+                      Go
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div id="recordings-previews" class="ui cards">
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="eight wide column">
@@ -210,6 +288,10 @@
             <i class="setting icon"></i> Change Settings
           </button>
 
+          <button class="ui button" type="button" id="view-recordings-vm-button" disabled>
+            <i class="camera icon"></i> View Recordings
+          </button>
+
           <button class="ui positive button" type="button" id="new-vm-button">
             <i class="plus icon"></i> New VM
           </button>
@@ -290,6 +372,13 @@
             <div class="ui checkbox">
               <input type="checkbox" name="disallow-guests">
               <label>Registered users only</label>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="ui checkbox">
+              <input type="checkbox" name="recordings-enabled">
+              <label>Recordings</label>
             </div>
           </div>
 
