@@ -1704,7 +1704,8 @@ const auto byte_array = array.asBytes();
       return;
     }
 
-    if (instr_field->getIndex() == Guacamole::GuacClientInstruction::Which::NOP)
+    if (not CollabVm::Common::IsGuacamoleClientInstructionAllowed(
+          Guacamole::GuacClientInstruction::Which(instr_field->getIndex())))
     {
       return;
     }
