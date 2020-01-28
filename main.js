@@ -145,7 +145,6 @@ const CollabVmTunnel = function() {
   };
   this.disconnect = data => {
     this.setState(Guacamole.Tunnel.State.CLOSED);
-    hasTurn = false;
   };
   //this.onerror = () => {};
 };
@@ -303,9 +302,13 @@ const updateSession = (sessionId, newUsername) => {
 };
 
 collabVmTunnel.onstatechange = function(state) {
-  if (state == Guacamole.Tunnel.State.CLOSED) {
-    //displayLoading();
-  } else if (state == Guacamole.Tunnel.State.OPEN) {
+  if (state === Guacamole.Tunnel.State.CLOSED) {
+    const guacDisplay = guacClient.getDisplay().getElement();
+    if (guacDisplay.parentNode === display)
+      display.removeChild(guacDisplay);
+    display.innerHTML = "VM offline";
+  } else if (state === Guacamole.Tunnel.State.OPEN) {
+    display.innerHTML = "";
     display.appendChild(guacClient.getDisplay().getElement());
   }
 };
@@ -661,7 +664,6 @@ addMessageHandlers({
     captchaRequired = captchaRequired2;
     lastChatMessageTime = 0;
     $("#chat-input").prop("disabled", captchaRequired);
-    guacClient.connect();
     $("#chat-box").empty();
     viewVm();
   },
@@ -880,8 +882,14 @@ addMessageHandlers({
     $("#login-btn").removeClass("loading");
     $("#login-register-status").text(error).addClass("visible");
   },
-  onGuacInstr: (name, instr) =>
-    collabVmTunnel.oninstruction(name, instr),
+  onGuacInstr: (name, instr) => {
+      if (collabVmTunnel.state !== Guacamole.Tunnel.State.OPEN
+            && name !== "error"
+            && name !== "disconnect") {
+        guacClient.connect();
+      }
+      collabVmTunnel.oninstruction(name, instr);
+  },
   onInviteValidationResponse: (isValid, username) => {
     if (isValid) {
       showRegisterForm();
