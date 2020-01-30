@@ -101,6 +101,13 @@ function showVmConfig(vmConfig) {
       socket.sendVmSettings(currentVmId, vmSettings);
     });
 
+  initCheckbox($("#vm-settings :checkbox[name='run-start-command-after-disconnect']"),
+    vmConfig.getRunStartCommandAfterDisconnect(), function() {
+        const vmSettings = createObject("VmSettings");
+        vmSettings.setRunStartCommandAfterDisconnect(this.checked);
+        socket.sendVmSettings(currentVmId, vmSettings);
+      });
+
   $("#vm-settings :text[name='stop-command']").val(vmConfig.getStopCommand()).off("change")
     .change(function() {
       const vmSettings = createObject("VmSettings");

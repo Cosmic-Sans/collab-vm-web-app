@@ -483,6 +483,9 @@ struct VmSettingsWrapper {
             case VmSetting::Setting::RECORDINGS_ENABLED:
                 recordings_enabled_ = setting.getRecordingsEnabled();
                 break;
+            case VmSetting::Setting::RUN_START_COMMAND_AFTER_DISCONNECT:
+                run_start_command_after_disconnect_ = setting.getRunStartCommandAfterDisconnect();
+                break;
             }
         }
     }
@@ -575,6 +578,9 @@ struct VmSettingsWrapper {
                 break;
             case VmSetting::Setting::RECORDINGS_ENABLED:
                 setting.setRecordingsEnabled(recordings_enabled_);
+                break;
+            case VmSetting::Setting::RUN_START_COMMAND_AFTER_DISCONNECT:
+                setting.setRunStartCommandAfterDisconnect(run_start_command_after_disconnect_);
                 break;
             default:
               std::cerr << "unknown setting" << std::endl;
@@ -752,6 +758,13 @@ struct VmSettingsWrapper {
         recordings_enabled_ = recordings_enabled;
         modified_settings_.emplace(VmSetting::Setting::RECORDINGS_ENABLED);
     }
+    bool getRunStartCommandAfterDisconnect() const {
+        return run_start_command_after_disconnect_;
+    }
+    void setRunStartCommandAfterDisconnect(bool run_start_command_after_disconnect) {
+        run_start_command_after_disconnect_ = run_start_command_after_disconnect;
+        modified_settings_.emplace(VmSetting::Setting::RUN_START_COMMAND_AFTER_DISCONNECT);
+    }
     private:
         bool auto_start_;
         std::string name_;
@@ -779,6 +792,7 @@ struct VmSettingsWrapper {
         bool safe_for_work_;
         bool disallow_guests_;
         bool recordings_enabled_;
+        bool run_start_command_after_disconnect_;
 };
 
 struct Deserializer {
@@ -2085,6 +2099,8 @@ emscripten::class_<VmSettingsWrapper>("VmSettings")
     .function("setDisallowGuests", &VmSettingsWrapper::setDisallowGuests)
     .function("getRecordingsEnabled", &VmSettingsWrapper::getRecordingsEnabled)
     .function("setRecordingsEnabled", &VmSettingsWrapper::setRecordingsEnabled)
+    .function("getRunStartCommandAfterDisconnect", &VmSettingsWrapper::getRunStartCommandAfterDisconnect)
+    .function("setRunStartCommandAfterDisconnect", &VmSettingsWrapper::setRunStartCommandAfterDisconnect)
 ;
 }
 
