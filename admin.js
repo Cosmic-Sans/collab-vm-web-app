@@ -584,12 +584,12 @@ function showServerConfig(config) {
   const recordingConfig = config.getRecordings();
   $("#recordings-keyframe-interval-box").val(recordingConfig.keyframeInterval).off("change").change(function() {
     const config = window.serverConfig;
-    config.setRecordingKeyframeInterval(+this.value);
+    config.setRecordings(Objecttassign(config.getRecordings(), {keyframeInterval: +this.value}));
     getSocket().sendServerConfigModifications(config);
   });
   $("#recordings-file-duration-box").val(recordingConfig.fileDuration).off("change").change(function() {
     const config = window.serverConfig;
-    config.setRecordingFileDuration(+this.value);
+    config.setRecordings(Object.assign(config.getRecordings(), {fileDuration: +this.value}));
     getSocket().sendServerConfigModifications(config);
   });
   $("#recordings-capture-display-checkbox").prop("checked", recordingConfig.captureDisplay).off("change").change(function() {
