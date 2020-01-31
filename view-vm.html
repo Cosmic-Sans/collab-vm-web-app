@@ -19,15 +19,17 @@ div#display {
   </div>
   <div id="display-outer">
     <div id="display"></div>
-    <div style="display:none;" class="alert alert-info alert-dismissible" role="alert" id="vote-alert">
-        Do you want to reset the VM?
-        <button type="button" class="ui button" id="vote-yes-button">Yes</button>
-        <button type="button" class="ui button" id="vote-no-button">No</button>
-        <button type="button" class="close" aria-label="Close" id="vote-dismiss-button"><span aria-hidden="true">&times;</span></button>
+    <div style="display:none;" class="ui blue message" role="alert" id="vote-alert">
+	<i class="poll icon" style="font-size: 3em; line-height: 1; vertical-align: middle; opacity: 0.8; flex: 0 0 auto; width: auto; margin-right: 0em; float: left;"></i>
+	<i class="close icon" aria-label="Close" class="close" id="vote-dismiss-button"></i>
+        Do you want to reset the VM? 
+        <button type="button" class="ui green button" id="vote-yes-button">Yes</button>
+        <button type="button" class="ui red button" id="vote-no-button">No</button>
     </div>
     <div style="display:none;" id="vote-status">
-      <h3><small>Votes for VM Reset (<span id="vote-time"></span>)</small></h3>
-      <h4><span class="label label-success">Yes: <span id="vote-label-yes"></span></span> <span class="label label-danger">No: <span id="vote-label-no"></span></span></h4>
+      <h3><small>Votes for VM Reset (<span id="vote-time"></span>s): </small></h3>
+      <span class="ui green horizontal label">Yes: <span id="vote-label-yes"></span></span> <span class="ui red horizontal label">No: <span id="vote-label-no"></span></span>
+	  <br><br>
     </div>
     <!--<div class="progress">
       <div class="progress-bar progress-bar-success" style="width: 60%">
@@ -59,7 +61,7 @@ div#display {
         <button class="ui button" type="button" id="resume-turns-btn"><i class="play icon"></i>Resume Turn</button>
       </div>
     </div>
-    <h3 style="height: 2em;"><small id="status"></small></h3>
+    <h3 style="height: 1em;"><small id="status"></small></h3>
   </div>
   <div id="kbd-container">
     <div class="osk" id="kbd-outer" style="display: none;">
@@ -67,14 +69,14 @@ div#display {
       <br>
     </div>
   </div>
-  <div id="vm-description" style="text-align:center">
+  <div id="vm-description" style="text-align:center; height: 2em;">
   </div>
   <div class="ui grid" style="margin-left: 0rem;">
     <div class="four wide column">
       <h4 class="ui top attached header" style="background: #EEEEEE;">
         Users Online: <span id="online-users-count"></span>
       </h4>
-      <div class="ui attached segment">
+      <div class="ui attached segment" style="overflow-y:auto;max-height:280px;">
           <div id="online-users" class="ui celled list">
           </div>
       </div>
@@ -95,15 +97,17 @@ div#display {
       </div>
     </div>
   </div>
-  <div id="change-username-modal" class="ui mini modal">
-    <div class="header">
-      Change Username
-    </div>
-    <div class="content">
-      <input id="new-username-input" type="text" class="form-control">
-      <div class="actions">
-        <button class="ui ok button" type="button">OK</button>
+  <div id="change-username-modal" class="ui mini modal" style="width: 600px;">
+    <div class="header">Change Username</div>
+    <div class="content">Enter a new username in the box below.<br>
+      <div class="ui fluid labeled action input"> 
+            <span id="username-label" class="ui label">Username</span> <input id="new-username-input" type="text" placeholder="Enter username here..."></input>
+      </div>
+	  <div class="ui clearing divider"></div>
+      <div class="actions" style="float:right;">
+            <button class="ui ok primary button" type="button">OK</button>
       </div>
     </div>
+	<br><br>
   </div>
 </div>
