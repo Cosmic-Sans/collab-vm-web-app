@@ -259,6 +259,18 @@ $("#chat-input").keypress(function(e) {
   }
 });
 
+$("#ctrl-alt-del-btn").click(() => {
+  if (!hasTurn) {
+    return;
+  }
+  guacClient.sendKeyEvent(true, 65507);  // Press Ctrl
+  guacClient.sendKeyEvent(true, 65513);  // Press Alt
+  guacClient.sendKeyEvent(true, 65535);  // Press Del
+  guacClient.sendKeyEvent(false, 65535); // Release Del
+  guacClient.sendKeyEvent(false, 65513); // Release Alt
+  guacClient.sendKeyEvent(false, 65507); // Release Ctrl
+});
+
 let lastChatMessageTime = 0;
 $("#chat-send-btn").click(function() {
   const $this = $(this);
