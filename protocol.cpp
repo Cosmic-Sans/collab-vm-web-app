@@ -463,6 +463,9 @@ struct VmSettingsWrapper {
             case VmSetting::Setting::VOTE_COOLDOWN_TIME:
                 voteCooldownTime_ = setting.getVoteCooldownTime();
                 break;
+            case VmSetting::Setting::DISALLOW_GUEST_VOTES:
+                disallowGuestVotes_ = setting.getDisallowGuestVotes();
+                break;
             case VmSetting::Setting::PROTOCOL:
                 protocol_ = static_cast<std::uint16_t>(setting.getProtocol());
                 break;
@@ -554,6 +557,9 @@ struct VmSettingsWrapper {
                 break;
             case VmSetting::Setting::VOTE_COOLDOWN_TIME:
                                 setting.setVoteCooldownTime(voteCooldownTime_);
+                break;
+            case VmSetting::Setting::DISALLOW_GUEST_VOTES:
+                                setting.setDisallowGuestVotes(disallowGuestVotes_);
                 break;
             case VmSetting::Setting::PROTOCOL:
                 setting.setProtocol(VmSetting::Protocol(protocol_));
@@ -717,6 +723,13 @@ struct VmSettingsWrapper {
         voteCooldownTime_ = std::move(voteCooldownTime);
         modified_settings_.emplace(VmSetting::Setting::VOTE_COOLDOWN_TIME);
     }
+    bool getDisallowGuestVotes() const {
+        return disallowGuestVotes_;
+    }
+    void setDisallowGuestVotes(bool&& disallow_guest_votes) {
+        disallowGuestVotes_ = std::move(disallow_guest_votes);
+        modified_settings_.emplace(VmSetting::Setting::DISALLOW_GUEST_VOTES);
+    }
     auto getProtocol() const {
         return protocol_;
     }
@@ -784,6 +797,7 @@ struct VmSettingsWrapper {
         bool votesEnabled_;
         std::uint16_t voteTime_;
         std::uint16_t voteCooldownTime_;
+        bool disallowGuestVotes_;
         std::uint16_t protocol_;
         std::string address_;
         std::uint16_t socket_type_;
@@ -1063,7 +1077,8 @@ struct Deserializer {
               const auto vote_info = vote_status.getInProgress();
               onVoteStatus(vote_info.getTimeRemaining(),
                            vote_info.getYesVoteCount(),
-                           vote_info.getNoVoteCount());
+                           vote_info.getNoVoteCount(),
+                           vote_info.getDisallowGuestVotes());
             break;
           }
           break;
@@ -1437,7 +1452,7 @@ struct Deserializer {
 	virtual void onVoteDisabled() = 0;
 	virtual void onVoteIdle() = 0;
 	virtual void onVoteCoolingDown() = 0;
-	virtual void onVoteStatus(std::uint32_t time_remaining, std::uint32_t yes_vote_count, std::uint32_t no_vote_count) = 0;
+	virtual void onVoteStatus(std::uint32_t time_remaining, std::uint32_t yes_vote_count, std::uint32_t no_vote_count, bool disallow_guest_votes) = 0;
 	virtual void onVoteResult(bool vote_passed) = 0;
 	virtual void onRecordingPreview(double timestamp, std::uint32_t vm_id, emscripten::val png_bytes) = 0;
 	virtual void onRecordingPlaybackResult(bool result) = 0;
@@ -1544,8 +1559,8 @@ struct DeserializerWrapper : public emscripten::wrapper<Deserializer> {
 	virtual void onVoteCoolingDown() {
     return call<void>("onVoteCoolingDown");
   }
-	virtual void onVoteStatus(std::uint32_t time_remaining, std::uint32_t yes_vote_count, std::uint32_t no_vote_count) {
-    return call<void>("onVoteStatus", time_remaining, yes_vote_count, no_vote_count);
+	virtual void onVoteStatus(std::uint32_t time_remaining, std::uint32_t yes_vote_count, std::uint32_t no_vote_count, bool disallow_guest_votes) {
+    return call<void>("onVoteStatus", time_remaining, yes_vote_count, no_vote_count, disallow_guest_votes);
   }
   virtual void onVoteResult(bool vote_passed) {
     return call<void>("onVoteResult", vote_passed);
@@ -2087,6 +2102,8 @@ emscripten::class_<VmSettingsWrapper>("VmSettings")
     .function("setVoteTime", &VmSettingsWrapper::setVoteTime)
     .function("getVoteCooldownTime", &VmSettingsWrapper::getVoteCooldownTime)
     .function("setVoteCooldownTime", &VmSettingsWrapper::setVoteCooldownTime)
+    .function("getDisallowGuestVotes", &VmSettingsWrapper::getDisallowGuestVotes)
+    .function("setDisallowGuestVotes", &VmSettingsWrapper::setDisallowGuestVotes)
     .function("getAgentAddress", &VmSettingsWrapper::getAgentAddress)
     .function("setAgentAddress", &VmSettingsWrapper::setAgentAddress)
     .function("getProtocol", &VmSettingsWrapper::getProtocol)

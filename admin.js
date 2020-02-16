@@ -171,6 +171,13 @@ function showVmConfig(vmConfig) {
       socket.sendVmSettings(currentVmId, vmSettings);
     });
 
+  $("#vm-settings :input[name='disallow-guest-votes']").val(vmConfig.getDisallowGuestVotes()).off("change")
+    .change(function() {
+      const vmSettings = createObject("VmSettings");
+      vmSettings.setDisallowGuestVotes(+this.value);
+      socket.sendVmSettings(currentVmId, vmSettings);
+    });
+
   initCheckbox($("#vm-settings :checkbox[name='uploads-enabled']"),
     vmConfig.getUploadsEnabled(), function() {
         const vmSettings = createObject("VmSettings");
