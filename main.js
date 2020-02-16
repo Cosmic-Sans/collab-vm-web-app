@@ -683,16 +683,16 @@ addMessageHandlers({
     hideVotes();
     $("#start-vote-button").hide();
   },
-  onVoteIdle: () => {
+  onVoteIdle: disallowGuestVotes => {
     hasVoted = false;
     hideVotes();
-    $("#start-vote-button").show().prop("disabled", false);
+    $("#start-vote-button").show().prop("disabled", disallowGuestVotes && !isLoggedIn);
   },
   onVoteCoolingDown: () => {
     hideVotes();
     $("#start-vote-button").show().prop("disabled", true);
   },
-  onVoteStatus: (timeRemaining, yesVoteCount, noVoteCount) => {
+  onVoteStatus: (timeRemaining, yesVoteCount, noVoteCount, disallowGuestVotes) => {
     hideVotes();
     $("#start-vote-button").show().prop("disabled", timeRemaining);
     if (!timeRemaining) {
@@ -718,7 +718,7 @@ addMessageHandlers({
 
     voteInterval = setInterval(() => { ms -= 1000; voteStatus(); }, 1000);
 
-    if (!hasVoted) {
+    if (!hasVoted && (!disallowGuestVotes || isLoggedIn)) {
       $("#vote-alert").show();
     }
   },

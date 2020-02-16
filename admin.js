@@ -170,6 +170,13 @@ function showVmConfig(vmConfig) {
       vmSettings.setVoteCooldownTime(+this.value);
       socket.sendVmSettings(currentVmId, vmSettings);
     });
+;
+  initCheckbox($("#vm-settings :checkbox[name='disallow-guest-votes']"),
+    vmConfig.getDisallowGuestVotes(), function() {
+        const vmSettings = createObject("VmSettings");
+        vmSettings.setDisallowGuestVotes(this.checked);
+        socket.sendVmSettings(currentVmId, vmSettings);
+      });
 
   initCheckbox($("#vm-settings :checkbox[name='uploads-enabled']"),
     vmConfig.getUploadsEnabled(), function() {
