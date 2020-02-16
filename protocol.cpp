@@ -1893,6 +1893,12 @@ const auto byte_array = array.asBytes();
     messageReady(message_builder);
   }
 
+	void cancelVote() {
+		capnp::MallocMessageBuilder message_builder;
+		message_builder.initRoot<CollabVmClientMessage::Message>().setCancelVote();
+		messageReady(message_builder);
+  }
+
 	virtual void onMessageReady(const emscripten::val& message) = 0;
 
   virtual ~Serializer() = default;
@@ -2058,6 +2064,7 @@ emscripten::class_<ServerSettingsWrapper>("ServerSetting")
 	.function("validateInvite", &Serializer::validateInvite)
 	.function("sendCaptchaCompleted", &Serializer::sendCaptchaCompleted)
 	.function("sendRecordingPreviewRequest", &Serializer::sendRecordingPreviewRequest)
+	.function("cancelVote", &Serializer::cancelVote)
 	.allow_subclass<SerializerWrapper>("SerializerWrapper")
 	;
 }

@@ -290,6 +290,7 @@ $("#chat-send-btn").click(function() {
 $("#end-turn-btn").click(() => getSocket().endTurn());
 $("#pause-turns-btn").click(() => getSocket().pauseTurnTimer());
 $("#resume-turns-btn").click(() => getSocket().resumeTurnTimer());
+$("#cancel-vote-btn").click(() => getSocket().cancelVote());
 $("#login-item").show();
 
 const updateSession = (sessionId, newUsername) => {
