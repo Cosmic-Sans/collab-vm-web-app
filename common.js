@@ -43,7 +43,7 @@ const findRoute = () => {
   }
 };
 const setUrl = url => {
-  window.history.pushState({}, "", rootPath.substr(0, rootPath.length - 1) + url);
+  window.history.pushState({}, "", rootPath.substr(0, rootPath.length - 1) + url.replace(rootPath, "/"));
   findRoute();
 };
 const getPath = () => {
