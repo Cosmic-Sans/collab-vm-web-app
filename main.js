@@ -291,7 +291,8 @@ $("#end-turn-btn").click(() => getSocket().endTurn());
 $("#pause-turns-btn").click(() => getSocket().pauseTurnTimer());
 $("#resume-turns-btn").click(() => getSocket().resumeTurnTimer());
 $("#cancel-vote-btn").click(() => getSocket().cancelVote());
-$("#login-item").show();
+$("#login-item").show(); /* todo: hide this if you're already logged in */
+$("#register-item").show(); /* todo: hide this if you're already logged in or registrations are disabled. */
 
 const updateSession = (sessionId, newUsername) => {
   if (username !== newUsername) {
