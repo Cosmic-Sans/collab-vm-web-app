@@ -108,15 +108,23 @@
     <%= require("html-loader!./not-found.html") %>
   </div>
   <script>
-    if (location.toString().includes("darkMode")) {
-      import('https://cdn.jsdelivr.net/npm/darkreader/darkreader.min.js').then(() => {
+    if (location.toString().indexOf("darkMode") !== -1) {
+      var scriptElement = document.createElement('script');
+      script.onload = function() {
         DarkReader.setFetchMethod(window.fetch);
         DarkReader.enable();
-      });
+      };
+      script.src = "https://cdn.jsdelivr.net/npm/darkreader/darkreader.min.js";
+      document.getElementsByTagName('head')[0].appendChild(script);
       // This is required to prevent the canvas from going invisible.
       darkModeStyleElement = document.createElement("style");
       // Reset z-index for canvas element.
-      darkModeStyleElement.textContent = "canvas{z-index:0!important}";
+      darkModeStyleInject = "canvas{z-index:0!important}"
+      if ("textContent" in css) {
+        darkModeStyleElement.textContent = darkModeStyleInject;
+      } else {
+        darkModeStyleElement.innerText = darkModeStyleInject;
+      }
       document.body.appendChild(darkModeStyleElement);
     }
   </script>
