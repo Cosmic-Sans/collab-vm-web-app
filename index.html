@@ -107,27 +107,5 @@
   <div id="page-not-found" class="container" style="display: none">
     <%= require("html-loader!./not-found.html") %>
   </div>
-  <script>
-    if (location.toString().indexOf("darkMode") !== -1) {
-      // Inject Dark Reader script.
-      var scriptElement = document.createElement('script');
-      scriptElement.onload = function() {
-        DarkReader.setFetchMethod(window.fetch);
-        DarkReader.enable();
-      };
-      scriptElement.src = "https://cdn.jsdelivr.net/npm/darkreader/darkreader.min.js";
-      document.getElementsByTagName('head')[0].appendChild(scriptElement);
-      // This is required to prevent the canvas from going invisible.
-      darkModeStyleElement = document.createElement("style");
-      // Reset z-index for canvas element.
-      darkModeStyleInject = "canvas{z-index:0!important}"
-      if ("textContent" in css) {
-        darkModeStyleElement.textContent = darkModeStyleInject;
-      } else {
-        darkModeStyleElement.innerText = darkModeStyleInject;
-      }
-      document.body.appendChild(darkModeStyleElement);
-    }
-  </script>
 </body>
 </html>
