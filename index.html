@@ -109,13 +109,14 @@
   </div>
   <script>
     if (location.toString().indexOf("darkMode") !== -1) {
+      // Inject Dark Reader script.
       var scriptElement = document.createElement('script');
-      script.onload = function() {
+      scriptElement.onload = function() {
         DarkReader.setFetchMethod(window.fetch);
         DarkReader.enable();
       };
-      script.src = "https://cdn.jsdelivr.net/npm/darkreader/darkreader.min.js";
-      document.getElementsByTagName('head')[0].appendChild(script);
+      scriptElement.src = "https://cdn.jsdelivr.net/npm/darkreader/darkreader.min.js";
+      document.getElementsByTagName('head')[0].appendChild(scriptElement);
       // This is required to prevent the canvas from going invisible.
       darkModeStyleElement = document.createElement("style");
       // Reset z-index for canvas element.
