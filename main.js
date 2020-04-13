@@ -18,7 +18,7 @@ let isAdmin = false;
 let isLoggedIn = false;
 
 // Enable dark mode.
-if (location.toString().indexOf("darkMode") !== -1) {
+if (location.href.indexOf("darkMode") !== -1) {
   DarkReader.setFetchMethod(window.fetch);
   DarkReader.enable();
   // This is required to prevent the canvas from going invisible.
