@@ -17,6 +17,22 @@ let hasVoted = false;
 let isAdmin = false;
 let isLoggedIn = false;
 
+// Enable dark mode.
+if (location.toString().indexOf("darkMode") !== -1) {
+  DarkReader.setFetchMethod(window.fetch);
+  DarkReader.enable();
+  // This is required to prevent the canvas from going invisible.
+  darkModeStyleElement = document.createElement("style");
+  // Reset z-index for canvas element.
+  darkModeStyleInject = "canvas{z-index:0!important}"
+  if ("textContent" in css) {
+    darkModeStyleElement.textContent = darkModeStyleInject;
+  } else {
+    darkModeStyleElement.innerText = darkModeStyleInject;
+  }
+  document.body.appendChild(darkModeStyleElement);
+}
+
 registerUrlRouter(path => {
   const socket = getSocket();
   socket.onSocketDisconnect = () => {
