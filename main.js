@@ -17,10 +17,18 @@ let hasVoted = false;
 let isAdmin = false;
 let isLoggedIn = false;
 
+import {
+    enable as enableDarkMode,
+    disable as disableDarkMode,
+    auto as followSystemColorScheme,
+    setFetchMethod as setFetchMethod,
+} from 'darkreader';
+
+setFetchMethod(window.fetch);
+
 // Enable dark mode.
 if (location.href.indexOf("darkMode") !== -1) {
-  DarkReader.setFetchMethod(window.fetch);
-  DarkReader.enable();
+  enableDarkMode();
   // This is required to prevent the canvas from going invisible.
   darkModeStyleElement = document.createElement("style");
   // Reset z-index for canvas element.
