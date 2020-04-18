@@ -27,7 +27,7 @@ import {
 setFetchMethod(window.fetch);
 
 // Enable dark mode.
-if (location.href.indexOf("darkMode") !== -1) {
+if (location.href.includes("darkMode")) {
   enableDarkMode();
   // This is required to prevent the canvas from going invisible.
   darkModeStyleElement = document.createElement("style");
